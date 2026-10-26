@@ -5,11 +5,13 @@ Claude's design read invalidated the original slice's persuasion and danger clai
 - Twelve simulation tests pass. They include first Come refusal, real repeated-insistence distrust, causal trust ablation through HF's public API, early HF tick, cast/fire variation, smoke collapse, button applicability, companion event coverage and exact replay/corruption checks.
 - Sixty fixed-seed bot runs cover seeds1–20 and three strategies. Silent-proximity wins:0/20. Competent wins:20/20, taking39.45–59.5seconds. Careless wins:0/20;5 runs lose breath at ticks2803–2810, before their deadlines. All60 exports replay to their exact full-state hash. The raw rows and reproducible command are in [smoke-measurements.md](smoke-measurements.md) and [smoke-measurements.json](smoke-measurements.json).
 - Production-CSP Playwright checks:14 passed,2 inapplicable CPU-measurement skips. Chromium/WebKit each cover360×690 and1280×800, contextual speech and keyboard, actual refusal, all-person event retention, pause/reset/navigation, replay, loss and context recovery.
-- Chromium4× CPU: phone p951.6ms/max17.2ms(153samples); wide p951.8ms/max18.1ms(153samples). This measures local Apple Silicon ticker CPU including render submission. It does not establish physical phone/GPU performance.
+- Chromium4× CPU after DOM update caching: phone p951.4ms/max16.1ms(150samples); wide p951.4ms/max10.1ms(153samples). This measures local Apple Silicon ticker CPU including render submission. It does not establish physical phone/GPU performance.
 - Two independent Codex static review lenses found no blocking/high/medium issue on the final slice. Minor Burak dialogue incorrectly promised help for absent Sevim; fixed before final review. Source-hash receipt: coordinator scratch ng-smoke/iteration2-review.md.
 - Root phone Chrome play on seed1 rescued all3 home residents after an actual books refusal. Names stayed separate; the history retained all3 arrivals. Root wide Chrome play on seed4 ended at the deadline with Burak out and3 residents taken to hospital; the downloaded run (hash204a8e12) is retained in coordinator scratch. Both complete browser outcomes used ordinary controls, without advancing the lab clock. Release evidence is in the coordinator report.
 
 Bot success is not human comprehension evidence. The coordinator still owns lab round1 and panel acceptance. Current replay format is smoke-2; earlier smoke-1 exports require the old build.
+
+The first iteration2 CI (7020598, run40289428241) failed only the phone CPU gate at18.3ms p95;13 other checks passed and2 were inapplicable. Unchanged button text was being rebuilt every20Hz step. A DOM projection cache now skips unchanged writes and layout work. A focused independent Codex review found no invalidation issue. The same16ms threshold remains. The final local lane and all14 browser checks passed again.
 
 ## Historical first slice checks (773ed0e)
 

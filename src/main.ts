@@ -43,6 +43,7 @@ const line = document.querySelector<HTMLParagraphElement>('#line')!;
 const eventList = document.querySelector<HTMLOListElement>('#events')!;
 const eventFeed = document.querySelector<HTMLDivElement>('#event-feed')!;
 let eventCursor = 0;
+let lastDOMKey = '';
 const people = document.querySelector<HTMLDivElement>('#people')!;
 const menuButton = document.querySelector<HTMLButtonElement>('#menu')!;
 const landings = [450, 365, 280, 195, 110];
@@ -179,6 +180,27 @@ function select(id: string) {
   updateDOM();
 }
 function updateDOM() {
+  // Walking changes positions every step, but DOM controls change only at
+  // speaking range boundaries or after an event. Avoid rebuilding button text
+  // and forcing layout on every 20 Hz simulation step.
+  const domKey = JSON.stringify([
+    started,
+    paused,
+    replaying,
+    selected,
+    game.phase,
+    game.torch,
+    game.events.length,
+    game.people.map((p) => [
+      p.line,
+      p.status,
+      p.atHome,
+      p.asleep,
+      ...(['come', 'books', 'together', 'route'] as const).map((action) => canSpeak(game, p.id, action)),
+    ]),
+  ]);
+  if (domKey === lastDOMKey) return;
+  lastDOMKey = domKey;
   const p = game.people.find((p) => p.id === selected)!;
   const message = p.atHome ? `${p.name}: ${p.line}` : `${p.name} is away tonight.`;
   if (line.textContent !== message) line.textContent = message;
@@ -305,6 +327,7 @@ function restart(newSeed = false) {
   lab.screen('stairwell');
 }
 function resetEvents() {
+  lastDOMKey = '';
   eventCursor = 0;
   eventList.replaceChildren();
   selected = game.people.find((p) => p.atHome)?.id ?? game.people[0]!.id;
