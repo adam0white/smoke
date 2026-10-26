@@ -2,7 +2,7 @@
 
 Measured 2026-10-26. This is automated simulation evidence, not player-panel evidence.
 
-The adjacent `smoke-measurements.json` records all 60 runs: seeds 1 through 20, three strategies per seed. Every export was replayed from its inputs and checked against the full-state hash, including HF state. The bot does not alter simulation state. Test-only trust ablation separately uses HF's public `seedVoice` API.
+The adjacent `smoke-measurements.json` records all 80 runs: seeds 1 through 20, three strategies per seed. Every export was replayed from its inputs and checked against the full-state hash, including HF state. The bot does not alter simulation state. Test-only trust ablation separately uses HF's public `seedVoice` API.
 
 | Strategy  | Behavior                                                                                                                                               | Wins  | Predeadline breath losses |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- | ------------------------- |
@@ -23,3 +23,10 @@ Reproduce with the repository's pinned runtime:
 ```sh
 SMOKE_MEASUREMENT_PATH=docs/smoke-measurements.json pnpm test src/sim.test.ts src/sim-bots.test.ts
 ```
+
+
+## Iteration 3: cold policy
+
+`cold-policy.ts` receives only the `readScreen` projection rendered in main.ts: names, status words, guidance words, selected name, enabled speech controls, torch state and smoke-clock text. It has no Game, seed, coordinates, HF state, route knowledge or task countdown access. Every simulated second it chooses a name, an available speech control, or the visible Street button. Name and Street commands use the same input translation as the UI. It follows explicit instructions, waits for books, and leads each agreed follower outside before choosing another stopped person.
+
+The fixed seeds 1–20 retain all three earlier strategies and add cold policy. Cold policy wins 20/20 in 857–1556 ticks (42.85–77.8 seconds). All 80 exports replay to the full-state hash. The browser suite separately constructs this policy's observation from rendered DOM text and enabled buttons; only time advancement uses the lab API. These are automated controls, not evidence from a first-time human.

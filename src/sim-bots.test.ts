@@ -1,5 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { coldPolicy } from './cold-policy';
+import { readScreen } from './screen';
 import { createGame, exportRun, type Game, replayRun, stateHash, step } from './sim';
 
 function advance(g: Game, n: number) {
@@ -9,8 +11,29 @@ function travel(g: Game, x: number, y: number) {
   step(g, { type: 'move', x, y });
   for (let i = 0; i < 1000 && g.phase === 'playing' && (g.player.x !== x || g.player.y !== y); i++) step(g);
 }
-function bot(seed: number, strategy: 'silent' | 'careless' | 'competent') {
+function bot(seed: number, strategy: 'silent' | 'careless' | 'competent' | 'cold') {
   const g = createGame(seed);
+  if (strategy === 'cold') {
+    let selected = g.people[0]!.id;
+    while (g.phase === 'playing') {
+      const command = coldPolicy(readScreen(g, selected));
+      if (command?.type === 'select') {
+        selected = command.id;
+        // Same translation as tapping a person's name in main.ts.
+        const person = g.people.find((p) => p.id === selected)!;
+        step(g, { type: 'move', x: person.x, y: person.y });
+      } else if (command?.type === 'street') step(g, { type: 'move', x: 180, y: 450 });
+      else if (command?.type === 'speech')
+        step(
+          g,
+          command.action === 'torch'
+            ? { type: 'torch' }
+            : { type: 'speak', id: selected, line: command.action },
+        );
+      advance(g, 20);
+    }
+    return g;
+  }
   step(g, { type: 'torch' });
   if (strategy === 'careless') {
     travel(g, 180, 110);
@@ -40,7 +63,7 @@ function bot(seed: number, strategy: 'silent' | 'careless' | 'competent') {
 describe('twenty seeded nights', () => {
   it('measures silent, careless and informed strategies with exact replay', () => {
     const measurements = Array.from({ length: 20 }, (_, i) => i + 1).flatMap((seed) =>
-      (['silent', 'careless', 'competent'] as const).map((strategy) => {
+      (['silent', 'careless', 'competent', 'cold'] as const).map((strategy) => {
         const g = bot(seed, strategy);
         const run = exportRun(g);
         expect(stateHash(replayRun(run))).toBe(run.hash);
@@ -65,7 +88,7 @@ describe('twenty seeded nights', () => {
       );
     console.log(
       JSON.stringify({
-        strategies: ['silent', 'careless', 'competent'].map((strategy) => ({
+        strategies: ['silent', 'careless', 'competent', 'cold'].map((strategy) => ({
           strategy,
           wins: measurements.filter((m) => m.strategy === strategy && m.phase === 'won').length,
           breathLosses: measurements.filter(
@@ -74,6 +97,7 @@ describe('twenty seeded nights', () => {
         })),
       }),
     );
+    expect(measurements.filter((m) => m.strategy === 'cold' && m.phase === 'won').length).toBeGreaterThan(0);
     expect(measurements.filter((m) => m.strategy === 'silent' && m.phase === 'won')).toHaveLength(0);
     expect(
       measurements.filter((m) => m.strategy === 'careless' && m.breath === 1 && m.ticks < m.deadline).length,

@@ -347,3 +347,48 @@ header .brand strong {
     backdrop-filter: none;
   }
 }
+.smoke-clock {
+  margin: 0 0 6px;
+  min-height: 34px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--paper);
+}
+.people button small {
+  display: block;
+  font-size: 11px;
+  line-height: 1.25;
+  margin-top: 4px;
+  color: var(--paper);
+}
+.walk {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.walk button {
+  padding: 8px 12px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 0;
+}
+.walk .hint {
+  margin: 0;
+  text-align: left;
+  font-size: 11px;
+}
+@media (max-width: 700px) {
+  .event-feed {
+    height: 58px;
+  }
+  .controls {
+    padding-top: 6px;
+  }
+  .people button {
+    font-size: 12px;
+  }
+  .people button small {
+    font-size: 10px;
+  }
+}

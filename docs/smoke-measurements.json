@@ -38,6 +38,18 @@
       "hash": "de66bd96"
     },
     {
+      "seed": 1,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 1556,
+      "rescued": 3,
+      "home": 3,
+      "breath": 0.109103,
+      "deadline": 3001,
+      "hfTicks": 2,
+      "hash": "2f80369b"
+    },
+    {
       "seed": 2,
       "strategy": "silent",
       "phase": "lost",
@@ -72,6 +84,18 @@
       "deadline": 3002,
       "hfTicks": 1,
       "hash": "57c7e31c"
+    },
+    {
+      "seed": 2,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 1070,
+      "rescued": 3,
+      "home": 3,
+      "breath": 0.074626,
+      "deadline": 3002,
+      "hfTicks": 1,
+      "hash": "f608b318"
     },
     {
       "seed": 3,
@@ -110,6 +134,18 @@
       "hash": "f69e9e32"
     },
     {
+      "seed": 3,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 872,
+      "rescued": 3,
+      "home": 3,
+      "breath": 0,
+      "deadline": 3003,
+      "hfTicks": 1,
+      "hash": "8012fb46"
+    },
+    {
       "seed": 4,
       "strategy": "silent",
       "phase": "lost",
@@ -144,6 +180,18 @@
       "deadline": 3004,
       "hfTicks": 1,
       "hash": "3c1f5f05"
+    },
+    {
+      "seed": 4,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 1535,
+      "rescued": 4,
+      "home": 4,
+      "breath": 0.100871,
+      "deadline": 3004,
+      "hfTicks": 2,
+      "hash": "34e54879"
     },
     {
       "seed": 5,
@@ -182,6 +230,18 @@
       "hash": "d8661cf8"
     },
     {
+      "seed": 5,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 1160,
+      "rescued": 3,
+      "home": 3,
+      "breath": 0.106409,
+      "deadline": 3005,
+      "hfTicks": 1,
+      "hash": "719eaa32"
+    },
+    {
       "seed": 6,
       "strategy": "silent",
       "phase": "lost",
@@ -216,6 +276,18 @@
       "deadline": 3006,
       "hfTicks": 1,
       "hash": "a414c09e"
+    },
+    {
+      "seed": 6,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 1556,
+      "rescued": 3,
+      "home": 3,
+      "breath": 0.106495,
+      "deadline": 3006,
+      "hfTicks": 2,
+      "hash": "29385ddf"
     },
     {
       "seed": 7,
@@ -254,6 +326,18 @@
       "hash": "2dc74441"
     },
     {
+      "seed": 7,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 918,
+      "rescued": 3,
+      "home": 3,
+      "breath": 0.000762,
+      "deadline": 3007,
+      "hfTicks": 1,
+      "hash": "ce461878"
+    },
+    {
       "seed": 8,
       "strategy": "silent",
       "phase": "lost",
@@ -288,6 +372,18 @@
       "deadline": 3008,
       "hfTicks": 1,
       "hash": "07283e8b"
+    },
+    {
+      "seed": 8,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 873,
+      "rescued": 3,
+      "home": 3,
+      "breath": 0.002774,
+      "deadline": 3008,
+      "hfTicks": 1,
+      "hash": "5d64efa6"
     },
     {
       "seed": 9,
@@ -326,6 +422,18 @@
       "hash": "ba0aea63"
     },
     {
+      "seed": 9,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 1556,
+      "rescued": 4,
+      "home": 4,
+      "breath": 0.104643,
+      "deadline": 3009,
+      "hfTicks": 2,
+      "hash": "991b2b96"
+    },
+    {
       "seed": 10,
       "strategy": "silent",
       "phase": "lost",
@@ -360,6 +468,18 @@
       "deadline": 3010,
       "hfTicks": 1,
       "hash": "81ce0372"
+    },
+    {
+      "seed": 10,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 1202,
+      "rescued": 3,
+      "home": 3,
+      "breath": 0.089977,
+      "deadline": 3010,
+      "hfTicks": 2,
+      "hash": "d5d61591"
     },
     {
       "seed": 11,
@@ -398,6 +518,18 @@
       "hash": "ff1bc56e"
     },
     {
+      "seed": 11,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 1493,
+      "rescued": 3,
+      "home": 3,
+      "breath": 0.120609,
+      "deadline": 3011,
+      "hfTicks": 2,
+      "hash": "f01e4ded"
+    },
+    {
       "seed": 12,
       "strategy": "silent",
       "phase": "lost",
@@ -432,6 +564,18 @@
       "deadline": 3012,
       "hfTicks": 1,
       "hash": "58a9a039"
+    },
+    {
+      "seed": 12,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 1083,
+      "rescued": 3,
+      "home": 3,
+      "breath": 0.096773,
+      "deadline": 3012,
+      "hfTicks": 1,
+      "hash": "2f136d3a"
     },
     {
       "seed": 13,
@@ -470,6 +614,18 @@
       "hash": "fd101657"
     },
     {
+      "seed": 13,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 857,
+      "rescued": 3,
+      "home": 3,
+      "breath": 0.003392,
+      "deadline": 3013,
+      "hfTicks": 1,
+      "hash": "a990106e"
+    },
+    {
       "seed": 14,
       "strategy": "silent",
       "phase": "lost",
@@ -504,6 +660,18 @@
       "deadline": 3014,
       "hfTicks": 1,
       "hash": "cc529da5"
+    },
+    {
+      "seed": 14,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 1535,
+      "rescued": 4,
+      "home": 4,
+      "breath": 0.108231,
+      "deadline": 3014,
+      "hfTicks": 2,
+      "hash": "8100f9b5"
     },
     {
       "seed": 15,
@@ -542,6 +710,18 @@
       "hash": "2e5b3fe5"
     },
     {
+      "seed": 15,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 1160,
+      "rescued": 3,
+      "home": 3,
+      "breath": 0.09927,
+      "deadline": 3015,
+      "hfTicks": 1,
+      "hash": "d94a2e29"
+    },
+    {
       "seed": 16,
       "strategy": "silent",
       "phase": "lost",
@@ -576,6 +756,18 @@
       "deadline": 3016,
       "hfTicks": 1,
       "hash": "e0e22520"
+    },
+    {
+      "seed": 16,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 1535,
+      "rescued": 3,
+      "home": 3,
+      "breath": 0.100073,
+      "deadline": 3016,
+      "hfTicks": 2,
+      "hash": "c1f6eef8"
     },
     {
       "seed": 17,
@@ -614,6 +806,18 @@
       "hash": "dbf9d6d8"
     },
     {
+      "seed": 17,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 928,
+      "rescued": 3,
+      "home": 3,
+      "breath": 0,
+      "deadline": 3017,
+      "hfTicks": 1,
+      "hash": "63e2a92f"
+    },
+    {
       "seed": 18,
       "strategy": "silent",
       "phase": "lost",
@@ -648,6 +852,18 @@
       "deadline": 3018,
       "hfTicks": 1,
       "hash": "a53e85da"
+    },
+    {
+      "seed": 18,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 862,
+      "rescued": 3,
+      "home": 3,
+      "breath": 0.014921,
+      "deadline": 3018,
+      "hfTicks": 1,
+      "hash": "e832927a"
     },
     {
       "seed": 19,
@@ -686,6 +902,18 @@
       "hash": "e10996d8"
     },
     {
+      "seed": 19,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 1535,
+      "rescued": 4,
+      "home": 4,
+      "breath": 0.107138,
+      "deadline": 3019,
+      "hfTicks": 2,
+      "hash": "064c559c"
+    },
+    {
       "seed": 20,
       "strategy": "silent",
       "phase": "lost",
@@ -720,6 +948,18 @@
       "deadline": 3020,
       "hfTicks": 1,
       "hash": "8f18191e"
+    },
+    {
+      "seed": 20,
+      "strategy": "cold",
+      "phase": "won",
+      "ticks": 1202,
+      "rescued": 3,
+      "home": 3,
+      "breath": 0.084877,
+      "deadline": 3020,
+      "hfTicks": 2,
+      "hash": "5de0ed0a"
     }
   ]
 }

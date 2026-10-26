@@ -26,7 +26,7 @@ Hacer (58), Burak (31), Sevim (69), Derya (44), using their canonical identities
 
 ## Phone and keyboard
 
-At 360×690 the building occupies the space above a separate bottom thumb area. A tap on a landing moves; a tap on a figure selects. Speech buttons remain below the figures. Keyboard at 1280×800 uses arrows/WASD, selection and speech shortcuts. A focused line makes the person's reason explicit; hesitation alone is insufficient. Feedback pauses. Background tabs do not accrue simulation catch-up.
+At 360×690 the building occupies the space above a separate bottom thumb area. A tap on a landing moves; a tap on a figure selects. Speech buttons remain below the figures. Keyboard at 1280×800 uses arrows/WASD, selection and speech shortcuts. A focused line makes the person's reason explicit; hesitation alone is insufficient. Iteration 3 adds a visible Street button, a current status under every name, and DOM text for smoke-wave and closure timing. Following means walk toward the caretaker, then wait beside them until the caretaker moves. The screen tells the player to lead followers to the street. Feedback pauses. Background tabs do not accrue simulation catch-up.
 
 ## Evidence gates
 

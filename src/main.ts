@@ -1,6 +1,7 @@
 import 'pixi.js/unsafe-eval';
 import { claimLabNotice, createLab } from '@adam0white/lab-client';
 import { Application, Container, Graphics, Text } from 'pixi.js';
+import { readScreen } from './screen';
 import {
   canSpeak,
   createGame,
@@ -14,7 +15,7 @@ import {
 import './style.css';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
-app.innerHTML = `<header><div class="brand">Lale Apartmanı · a night in Istanbul<strong>Smoke on the Stairs</strong></div><button class="plain" id="menu" aria-label="Pause and open menu">≡</button></header><main class="stage"><aside class="stage-note"><b>06:10 · Istanbul</b>Find who is home.<br>Show them the stair.<br>Ask them to leave.</aside><div class="scene" id="scene" role="img" aria-label="Apartment stairwell. Tap a landing to walk. Tap a neighbour to select them."></div></main><section class="controls" aria-label="Neighbour and action controls"><div class="event-feed" id="event-feed" role="log" aria-label="What everyone says and does" aria-live="polite" aria-relevant="additions"><ol id="events"></ol></div><p class="dialogue" id="line"></p><div class="people" id="people"></div><div class="actions"><button data-action="come">Come now<small>E</small></button><button data-action="books">The books<small>B</small></button><button data-action="together">Walk with me<small>T</small></button><button data-action="route">Show the stair<small>R</small></button><button data-action="torch">Torch<small>F</small></button></div><p class="hint">Tap a landing to walk · tap a neighbour to select and approach · WASD / arrows to move</p><div class="sr-only" id="landings" aria-label="Walk to a landing"></div></section><div class="veil" id="overlay"></div>`;
+app.innerHTML = `<header><div class="brand">Lale Apartmanı · a night in Istanbul<strong>Smoke on the Stairs</strong></div><button class="plain" id="menu" aria-label="Pause and open menu">≡</button></header><main class="stage"><aside class="stage-note"><b>06:10 · Istanbul</b>Find who is home.<br>Show them the stair.<br>Ask them to leave.</aside><div class="scene" id="scene" role="img" aria-label="Apartment stairwell. Tap a landing to walk. Tap a neighbour to select them."></div></main><section class="controls" aria-label="Neighbour and action controls"><p id="smoke-clock" class="smoke-clock" role="timer"></p><div class="event-feed" id="event-feed" role="log" aria-label="What everyone says and does" aria-live="polite" aria-relevant="additions"><ol id="events"></ol></div><p class="dialogue" id="line"></p><div class="people" id="people"></div><div class="actions"><button data-action="come">Come now<small>E</small></button><button data-action="books">The books<small>B</small></button><button data-action="together">Walk with me<small>T</small></button><button data-action="route">Show the stair<small>R</small></button><button data-action="torch">Torch<small>F</small></button></div><div class="walk"><button id="street">Street</button><p id="guidance" class="hint"></p></div><div class="sr-only" id="landings" aria-label="Walk to a landing"></div></section><div class="veil" id="overlay"></div>`;
 const lab = createLab({ game: 'smoke' });
 const requestedSeed = new URLSearchParams(location.search).get('seed');
 let game = createGame(
@@ -180,6 +181,9 @@ function select(id: string) {
   updateDOM();
 }
 function updateDOM() {
+  const screen = readScreen(game, selected);
+  const clock = document.querySelector<HTMLElement>('#smoke-clock')!;
+  if (clock.textContent !== screen.timer) clock.textContent = screen.timer;
   // Walking changes positions every step, but DOM controls change only at
   // speaking range boundaries or after an event. Avoid rebuilding button text
   // and forcing layout on every 20 Hz simulation step.
@@ -191,6 +195,7 @@ function updateDOM() {
     game.phase,
     game.torch,
     game.events.length,
+    screen,
     game.people.map((p) => [
       p.line,
       p.status,
@@ -201,8 +206,9 @@ function updateDOM() {
   ]);
   if (domKey === lastDOMKey) return;
   lastDOMKey = domKey;
+  document.querySelector<HTMLElement>('#guidance')!.textContent = screen.guidance;
   const p = game.people.find((p) => p.id === selected)!;
-  const message = p.atHome ? `${p.name}: ${p.line}` : `${p.name} is away tonight.`;
+  const message = p.atHome ? `${p.name}: ${screen.dialogue}` : `${p.name} is away tonight.`;
   if (line.textContent !== message) line.textContent = message;
   const followingLatest = eventFeed.scrollHeight - eventFeed.scrollTop - eventFeed.clientHeight < 30;
   while (eventCursor < game.events.length) {
@@ -217,7 +223,13 @@ function updateDOM() {
     const resident = game.people.find((person) => person.id === button.dataset.id)!;
     button.classList.toggle('active', button.dataset.id === selected);
     button.setAttribute('aria-pressed', String(button.dataset.id === selected));
-    button.textContent = `${game.people.indexOf(resident) + 1} ${resident.name}${!resident.atHome ? ' · away' : resident.status === 'safe' ? ' · out' : resident.asleep ? ' · asleep' : ''}`;
+    const visible = screen.people.find((p) => p.id === resident.id)!;
+    button.replaceChildren();
+    const name = document.createElement('span');
+    name.textContent = `${game.people.indexOf(resident) + 1} ${resident.name}`;
+    const state = document.createElement('small');
+    state.textContent = visible.status;
+    button.append(name, state);
     button.disabled = !resident.atHome;
   }
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-action]')) {
@@ -313,6 +325,8 @@ function showMenu() {
     lab.setTelemetryOff(!(e.target as HTMLInputElement).checked);
 }
 menuButton.onclick = showMenu;
+document.querySelector<HTMLButtonElement>('#street')!.onclick = () =>
+  enqueue({ type: 'move', x: 180, y: 450 });
 function restart(newSeed = false) {
   attempt++;
   game = createGame(newSeed ? crypto.getRandomValues(new Uint32Array(1))[0]! : game.seed);
@@ -537,7 +551,7 @@ try {
 }
 
 showSheet(
-  `<div class="eyebrow">Lale Apartmanı · Istanbul</div><h1 id="sheet-title">Smoke on<br>the Stairs.</h1><p class="intro">Smoke is filling the stair.<br>Get everyone who is home to the street.</p><p>Tap a neighbour to approach. Show the stair with your torch. Choose what to say, and listen to their answer.</p><p class="minor">Tap a landing to walk. Keyboard: arrows / WASD to move, 1–4 to select. Speech keys appear on the buttons.</p><button class="primary" id="start">Enter the stairwell →</button>${showNotice ? '<p class="minor">The game lab records play, links it to other lab play on this device, and keeps it for 180 days. Turn recording off in the pause menu. Feedback is yours to review before sending. <a href="https://human.adamwhite.work/lab/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a></p>' : ''}<p class="minor">Nobody dies. This night changes no other game.</p>`,
+  `<div class="eyebrow">Lale Apartmanı · Istanbul</div><h1 id="sheet-title">Smoke on<br>the Stairs.</h1><p class="intro">Smoke is filling the stair.<br>Get everyone who is home to the street.</p><p>Tap a neighbour to approach. Show the stair with your torch. Choose what to say, and listen to their answer. When someone is following, tap Street to lead them down. Their name shows whether they are following or stopped.</p><p class="minor">Tap a landing to walk. Keyboard: arrows / WASD to move, 1–4 to select. Speech keys appear on the buttons.</p><button class="primary" id="start">Enter the stairwell →</button>${showNotice ? '<p class="minor">The game lab records play, links it to other lab play on this device, and keeps it for 180 days. Turn recording off in the pause menu. Feedback is yours to review before sending. <a href="https://human.adamwhite.work/lab/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a></p>' : ''}<p class="minor">Nobody dies. This night changes no other game.</p>`,
 );
 document.querySelector('#start')!.addEventListener('click', () => {
   started = true;
