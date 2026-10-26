@@ -2,7 +2,7 @@
 
 Measured 2026-10-26. This is automated simulation evidence, not player-panel evidence.
 
-The adjacent `smoke-measurements.json` records all 80 runs: seeds 1 through 20, three strategies per seed. Every export was replayed from its inputs and checked against the full-state hash, including HF state. The bot does not alter simulation state. Test-only trust ablation separately uses HF's public `seedVoice` API.
+The adjacent `smoke-measurements.json` records all 80 runs: seeds 1 through 20, four strategies per seed. Every export was replayed from its inputs and checked against the full-state hash, including HF state. The bot does not alter simulation state. Test-only trust ablation separately uses HF's public `seedVoice` API.
 
 | Strategy  | Behavior                                                                                                                                               | Wins  | Predeadline breath losses |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- | ------------------------- |
