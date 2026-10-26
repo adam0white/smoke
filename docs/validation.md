@@ -1,3 +1,26 @@
+# Iteration 4 verification — 2026-10-26
+
+The owner allowed death in this possible night. Each resident accumulates local smoke exposure against a seeded per-person tolerance. Time spent inside and thicker smoke increase exposure. Warnings appear at half and three-quarters of the limit. Residents outside stop accumulating exposure. HF3.2.0 still owns decisions; the host owns the hazard.
+
+23 unit and simulation tests pass. The new tests cover death, cumulative exposure, location, seeded tolerances, outside protection, individual ending attribution, early firefighter survival, terminal speech/action guards, dead-Sevim helper behavior, and rejection of historical replay versions.
+
+Seeds1–20,80 runs, all exact full-state replay:
+
+| Policy                  |  Wins | Escorted | Solo | Hospital | Dead |
+| ----------------------- | ----: | -------: | ---: | -------: | ---: |
+| Competent               | 20/20 |       48 |   16 |        0 |    0 |
+| Cold, visible text only | 20/20 |       48 |   16 |        0 |    0 |
+| Silent                  |  0/20 |        0 |    7 |        1 |   56 |
+| Careless                |  0/20 |        0 |    7 |        3 |   54 |
+
+Cold wins take42.85–77.8s; competent39.45–59.5s. Idle first deaths across these seeds occur88.45–142.75s into the night. These are fixed-seed game measurements, not a human comprehension result or physiological model. Raw rows: [iteration4-measurements.json](iteration4-measurements.json). Reproduce with `SMOKE_MEASUREMENT_PATH=docs/iteration4-measurements.json pnpm test src/sim-bots.test.ts`.
+
+Browser checks:26passed,2inapplicable WebKit CPU skips at360×690 and1280×800 in Chromium and WebKit. Both win and partial endings replay exactly. A rendered-text policy deliberately leaves Derya inside: Sevim and Hacer walk out with the caretaker, Burak escapes alone, and Derya dies. The heading counts2escorted. A focused4-project rerun after warning changes also passes. Retained phone/wide screenshots show the complete ending without clipping. Chromium4× CPU initial local p95:2.8ms phone,2.2ms wide; unchanged16ms gate.
+
+One independent read-only Codex review of the finished slice found no unresolved findings, including the dead-Sevim helper guard. Final CI and live receipts are recorded in the coordinator report.
+
+Replay format is now smoke-3. Changed hazard state/mechanics intentionally require older smoke-2 exports to use their original build. New exports replay exactly; HF remains3.2.0.
+
 # Iteration 2 verification — 2026-10-26
 
 Claude's design read invalidated the original slice's persuasion and danger claims. This iteration removes the silent-proximity follow rule. HF3.2.0 scores invitations from the person's needs, voice trust and perceived stair evidence. The host supplies movement, smoke and a caretaker breath hazard. It adds no sub-minute HF physiology.

@@ -73,6 +73,10 @@ describe('twenty seeded nights', () => {
           phase: g.phase,
           ticks: g.tick,
           rescued: g.rescued.length,
+          escorted: g.people.filter((r) => r.exitMethod === 'escorted').length,
+          solo: g.people.filter((r) => r.exitMethod === 'alone').length,
+          dead: g.people.filter((r) => r.status === 'dead').length,
+          hospital: g.people.filter((r) => r.status === 'hospital').length,
           home: g.people.filter((r) => r.atHome).length,
           breath: g.breath,
           deadline: g.deadline,
@@ -84,20 +88,30 @@ describe('twenty seeded nights', () => {
     if (process.env.SMOKE_MEASUREMENT_PATH)
       writeFileSync(
         process.env.SMOKE_MEASUREMENT_PATH,
-        `${JSON.stringify({ engine: '3.2.0', measurements }, null, 2)}\n`,
+        `${JSON.stringify({ engine: '3.2.0', replayFormat: 'smoke-3', measurements }, null, 2)}\n`,
       );
     console.log(
       JSON.stringify({
         strategies: ['silent', 'careless', 'competent', 'cold'].map((strategy) => ({
           strategy,
           wins: measurements.filter((m) => m.strategy === strategy && m.phase === 'won').length,
+          deaths: measurements.filter((m) => m.strategy === strategy).reduce((n, m) => n + m.dead, 0),
+          escorted: measurements.filter((m) => m.strategy === strategy).reduce((n, m) => n + m.escorted, 0),
+          solo: measurements.filter((m) => m.strategy === strategy).reduce((n, m) => n + m.solo, 0),
+          hospital: measurements.filter((m) => m.strategy === strategy).reduce((n, m) => n + m.hospital, 0),
           breathLosses: measurements.filter(
             (m) => m.strategy === strategy && m.breath === 1 && m.ticks < m.deadline,
           ).length,
         })),
       }),
     );
-    expect(measurements.filter((m) => m.strategy === 'cold' && m.phase === 'won').length).toBeGreaterThan(0);
+    expect(
+      measurements.filter((m) => m.strategy === 'cold' && m.phase === 'won').length,
+    ).toBeGreaterThanOrEqual(16);
+    expect(measurements.some((m) => m.strategy === 'silent' && m.dead > 0)).toBe(true);
+    expect(measurements.filter((m) => m.phase === 'won').every((m) => m.dead === 0 && m.hospital === 0)).toBe(
+      true,
+    );
     expect(measurements.filter((m) => m.strategy === 'silent' && m.phase === 'won')).toHaveLength(0);
     expect(
       measurements.filter((m) => m.strategy === 'careless' && m.breath === 1 && m.ticks < m.deadline).length,

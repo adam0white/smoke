@@ -34,7 +34,10 @@ export interface Resident {
   x: number;
   y: number;
   homeY: number;
-  status: 'waiting' | 'following' | 'escaping' | 'helping' | 'safe' | 'hospital';
+  status: 'waiting' | 'following' | 'escaping' | 'helping' | 'safe' | 'hospital' | 'dead';
+  smokeExposure: number;
+  smokeTolerance: number;
+  exitMethod?: 'escorted' | 'alone';
   line: string;
   action: string;
   atHome: boolean;
@@ -68,7 +71,7 @@ export interface Game {
   lastDecisionTick: number;
 }
 export interface RunExport {
-  format: 'smoke-2';
+  format: 'smoke-3';
   engine: '3.2.0';
   seed: number;
   ticks: number;
@@ -152,6 +155,11 @@ export function createGame(seed: number): Game {
       asleep: i === (normalizedSeed >>> 1) % 4,
       holdingBack: i === (normalizedSeed + 1) % 4,
       taskTicks: 0,
+      smokeExposure: 0,
+      // Fixed per night and person. Early evacuation stays viable; waiting through
+      // repeated smoke waves can be fatal. No random draw occurs during play.
+      smokeTolerance:
+        850 + ((Math.imul(normalizedSeed ^ Math.imul(i + 1, 0x9e3779b9), 0x85ebca6b) >>> 0) % 351),
       line:
         i === normalizedSeed % 5
           ? 'Away tonight.'
@@ -243,7 +251,11 @@ function offers(g: Game, r: Resident, invitation?: string): Affordance[] {
         0.12,
       ),
     );
-  if (r.id === 'burak' && g.routeFound && (g.people[0]!.booksReady || !g.people[0]!.atHome))
+  if (
+    r.id === 'burak' &&
+    g.routeFound &&
+    (g.people[0]!.booksReady || !g.people[0]!.atHome || g.people[0]!.status === 'dead')
+  )
     list.push(
       offer(
         'escape',
@@ -258,7 +270,13 @@ function offers(g: Game, r: Resident, invitation?: string): Affordance[] {
     );
   if (r.id === 'burak' && !g.routeFound)
     list.push(offer('route', 'check the stair and return', { safety: 0.95, competence: 0.6 }, 0.1));
-  if (r.id === 'burak' && g.routeFound && g.people[0]!.atHome && !g.people[0]!.booksReady)
+  if (
+    r.id === 'burak' &&
+    g.routeFound &&
+    g.people[0]!.atHome &&
+    g.people[0]!.status !== 'dead' &&
+    !g.people[0]!.booksReady
+  )
     list.push(offer('help', 'help Sevim tie the books', { safety: 0.9, meaning: 0.95, belonging: 0.8 }, 0.1));
   return list;
 }
@@ -344,7 +362,8 @@ function approach(p: { x: number; y: number }, x: number, y: number, speed: numb
 
 export function canSpeak(g: Game, id: string, line: Extract<Input, { type: 'speak' }>['line']): boolean {
   const r = g.people.find((p) => p.id === id);
-  if (!r?.atHome || !near(g, r) || r.status === 'safe' || r.status === 'hospital') return false;
+  if (g.phase !== 'playing' || !r?.atHome || !near(g, r) || ['safe', 'hospital', 'dead'].includes(r.status))
+    return false;
   if (r.action === 'books') return false;
   if (r.status !== 'waiting' && !(line === 'come' && r.status === 'following')) return false;
   if (line === 'books') return r.id === 'sevim' && !r.booksReady;
@@ -441,7 +460,16 @@ export function step(g: Game, input?: Input): void {
       ) * 1e6,
     ) / 1e6;
   for (const r of g.people) {
-    if (r.status === 'safe' || r.status === 'hospital') continue;
+    if (!r.atHome || ['safe', 'hospital', 'dead'].includes(r.status)) continue;
+    const residentFloor = Math.max(0, Math.min(4, Math.round((450 - r.y) / 85)));
+    r.smokeExposure = rounded(r.smokeExposure + g.smoke[residentFloor]!);
+    if (r.smokeExposure >= r.smokeTolerance) {
+      r.status = 'dead';
+      r.action = 'dead';
+      r.line = 'Died from smoke inside before firefighters arrived.';
+      event(g, `${r.name} died from smoke inside before firefighters arrived.`);
+      continue;
+    }
     if (r.action === 'books' && !r.booksReady) {
       r.taskTicks++;
       if (r.taskTicks >= 80) {
@@ -472,6 +500,13 @@ export function step(g: Game, input?: Input): void {
       }
     } else if (r.status === 'helping' && r.action === 'help') {
       const sevim = g.people[0]!;
+      if (sevim.status === 'dead') {
+        r.status = 'waiting';
+        r.action = 'wait';
+        r.line = 'Sevim has died. I need to get outside.';
+        choose(g, r);
+        continue;
+      }
       approach(r, sevim.x, sevim.y, 1.8);
       if (distance(r, sevim) < 8) {
         sevim.taskTicks++;
@@ -489,6 +524,7 @@ export function step(g: Game, input?: Input): void {
       if (distance(r, g.player) > 24 || g.player.y >= 435) approach(r, g.player.x, g.player.y, 1.7);
     } else if (r.status === 'escaping') approach(r, 180, 450, 1.7);
     if ((r.status === 'following' || r.status === 'escaping') && r.y >= 435) {
+      r.exitMethod = r.status === 'following' ? 'escorted' : 'alone';
       r.status = 'safe';
       r.line =
         r.id === 'sevim'
@@ -525,14 +561,14 @@ export function step(g: Game, input?: Input): void {
   } else if (g.tick >= g.deadline || g.breath >= 1) {
     g.phase = 'lost';
     for (const r of g.people)
-      if (r.status !== 'safe') {
+      if (r.atHome && !['safe', 'dead'].includes(r.status)) {
         r.status = 'hospital';
-        r.line = 'Firefighters brought me out. I am being checked at hospital.';
+        r.line = 'Firefighters brought me out alive. I went to hospital with smoke injuries.';
         event(g, `${r.name}: ${r.line}`);
       }
     event(
       g,
-      `${g.rescued.length} reached the door with you. Firefighters brought the others out. No one died.`,
+      `${g.rescued.length} reached the door safely. ${g.people.filter((r) => r.status === 'dead').length} died inside. Firefighters brought the remaining residents to hospital.`,
     );
   } else if (g.tick === 1600) event(g, 'Watch for the thin wave. Cross the stair while you can see it.');
   else if (g.tick === 2400) event(g, 'One minute until the stair closes. Bring everyone to the front door.');
@@ -549,7 +585,7 @@ export function stateHash(g: Game): string {
 }
 export function exportRun(g: Game): RunExport {
   return {
-    format: 'smoke-2',
+    format: 'smoke-3',
     engine: ENGINE,
     seed: g.seed,
     ticks: g.tick,
@@ -559,7 +595,7 @@ export function exportRun(g: Game): RunExport {
   };
 }
 export function replayRun(run: RunExport): Game {
-  if (run.format !== 'smoke-2' || run.engine !== ENGINE) throw new Error('Unsupported Smoke replay version.');
+  if (run.format !== 'smoke-3' || run.engine !== ENGINE) throw new Error('Unsupported Smoke replay version.');
   if (!Number.isInteger(run.ticks) || run.ticks < 0 || run.ticks > 4000)
     throw new Error('Invalid replay length.');
   const g = createGame(run.seed);

@@ -1,10 +1,11 @@
 import { canSpeak, type Game, type Resident } from './sim';
 
 export const speech = ['come', 'books', 'together', 'route'] as const;
-export function residentStatus(g: Game, r: Resident): string {
+function movementStatus(g: Game, r: Resident): string {
   if (!r.atHome) return 'Away tonight';
   if (r.status === 'safe') return 'Outside';
-  if (r.status === 'hospital') return 'At hospital';
+  if (r.status === 'hospital') return 'At hospital with smoke injuries';
+  if (r.status === 'dead') return 'Died from smoke';
   if (r.status === 'following')
     return Math.abs(r.x - g.player.x) + Math.abs(r.y - g.player.y) <= 24 && g.player.y < 435
       ? 'Following · waiting beside you. Lead me to the street.'
@@ -20,6 +21,29 @@ export function residentStatus(g: Game, r: Resident): string {
   return /coming|come, but/.test(r.line)
     ? 'Stopped · chose to wait after the last invitation'
     : `Stopped · ${r.line}`;
+}
+export function residentStatus(g: Game, r: Resident): string {
+  const status = movementStatus(g, r);
+  if (!r.atHome || ['safe', 'hospital', 'dead'].includes(r.status)) return status;
+  if (r.smokeExposure >= r.smokeTolerance * 0.75) return `${status} · Smoke may kill me. Get me outside.`;
+  if (r.smokeExposure >= r.smokeTolerance * 0.5) return `${status} · Smoke is making breathing difficult.`;
+  return status;
+}
+export function readOutcome(g: Game) {
+  const home = g.people.filter((r) => r.atHome);
+  const escorted = home.filter((r) => r.exitMethod === 'escorted').length;
+  return {
+    heading: g.phase === 'won' ? 'Everyone is out.' : `${escorted} walked out with you.`,
+    lines: home.map((r) => {
+      if (r.status === 'safe')
+        return `${r.name} ${r.exitMethod === 'escorted' ? 'walked out with you' : 'escaped alone'}.`;
+      if (r.status === 'dead')
+        return `${r.name} was left inside and died from smoke before firefighters reached ${r.id === 'burak' ? 'him' : 'her'}.`;
+      if (r.status === 'hospital')
+        return `${r.name} was left inside. Firefighters brought ${r.id === 'burak' ? 'him' : 'her'} out alive. ${r.id === 'burak' ? 'He' : 'She'} went to hospital with smoke injuries.`;
+      return `${r.name} is still inside.`;
+    }),
+  };
 }
 export function readScreen(g: Game, selected: string) {
   const r = g.people.find((p) => p.id === selected)!;

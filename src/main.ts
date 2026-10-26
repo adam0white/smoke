@@ -1,7 +1,7 @@
 import 'pixi.js/unsafe-eval';
 import { claimLabNotice, createLab } from '@adam0white/lab-client';
 import { Application, Container, Graphics, Text } from 'pixi.js';
-import { readScreen } from './screen';
+import { readOutcome, readScreen } from './screen';
 import {
   canSpeak,
   createGame,
@@ -177,7 +177,8 @@ function select(id: string) {
   const p = game.people.find((p) => p.id === id);
   if (!p?.atHome) return;
   selected = id;
-  if (p && p.status !== 'safe' && p.status !== 'hospital') enqueue({ type: 'move', x: p.x, y: p.y });
+  if (p && p.status !== 'safe' && p.status !== 'hospital' && p.status !== 'dead')
+    enqueue({ type: 'move', x: p.x, y: p.y });
   updateDOM();
 }
 function updateDOM() {
@@ -269,7 +270,11 @@ pixi.canvas.addEventListener('pointerdown', (e) => {
     x = ((e.clientX - r.left) * 360) / r.width,
     y = ((e.clientY - r.top) * 500) / r.height;
   const near = game.people.find(
-    (p) => p.status !== 'safe' && p.status !== 'hospital' && Math.hypot(p.x - x, p.y - 17 - y) < 27,
+    (p) =>
+      p.status !== 'safe' &&
+      p.status !== 'hospital' &&
+      p.status !== 'dead' &&
+      Math.hypot(p.x - x, p.y - 17 - y) < 27,
   );
   if (near) select(near.id);
   else
@@ -349,14 +354,9 @@ function resetEvents() {
 function showEnd() {
   ended = true;
   lab.screen('outcome');
-  const saved = game.rescued.map((id) => game.people.find((p) => p.id === id)!);
+  const outcome = readOutcome(game);
   showSheet(
-    `<div class="eyebrow">${replaying ? 'Replay · ' : ''}The street, after the fire</div><h1 id="sheet-title">${saved.length === game.people.filter((p) => p.atHome).length ? 'Everyone is out.' : `${saved.length} made it out with you.`}</h1>${saved.length ? `<ol>${saved.map((p) => `<li>${p.name} — ${p.action === 'follow' ? 'walked with you' : p.action === 'help' ? 'helped a neighbour' : 'found the way down'}<br><span class="minor">${p.line}</span></li>`).join('')}</ol>` : '<p>You reached the end of this night without a rescue.</p>'}<p>${game.people
-      .filter((p) => p.atHome && !game.rescued.includes(p.id))
-      .map((p) => p.name)
-      .join(
-        ', ',
-      )}${saved.length < game.people.filter((p) => p.atHome).length ? ' left with the firefighters and went to hospital. Nobody died.' : ''}</p><p class="minor">This night changes no other game. Try another order and see what they choose.</p><button class="primary" id="again">Try this night again</button>${replaying ? '' : '<button class="secondary" id="replay">Watch this run</button>'}<button class="secondary" id="end-export">Download this run</button><button class="secondary" id="end-feedback">Tell us about this night</button>`,
+    `<div class="eyebrow">${replaying ? 'Replay · ' : ''}The street, after the fire</div><h1 id="sheet-title">${outcome.heading}</h1><ol>${outcome.lines.map((line) => `<li>${line}</li>`).join('')}</ol><p class="minor">This night changes no other game. Try another order and see what they choose.</p><button class="primary" id="again">Try this night again</button>${replaying ? '' : '<button class="secondary" id="replay">Watch this run</button>'}<button class="secondary" id="end-export">Download this run</button><button class="secondary" id="end-feedback">Tell us about this night</button>`,
   );
   document.querySelector('#again')!.addEventListener('click', () => restart());
   document.querySelector('#replay')?.addEventListener('click', () => {
@@ -470,7 +470,7 @@ function draw(alpha: number, time: number) {
   game.people.forEach((p, i) => {
     const f = figures[i]!,
       old = previous[i] || p;
-    f.c.visible = p.atHome && p.status !== 'safe' && p.status !== 'hospital';
+    f.c.visible = p.atHome && p.status !== 'safe' && p.status !== 'hospital' && p.status !== 'dead';
     f.c.position.set(old.x + (p.x - old.x) * alpha, old.y + (p.y - old.y) * alpha);
     f.ring.clear();
     if (p.id === selected) f.ring.ellipse(0, 0, 15, 4).stroke({ color: coral, width: 1.5 });
@@ -551,7 +551,7 @@ try {
 }
 
 showSheet(
-  `<div class="eyebrow">Lale Apartmanı · Istanbul</div><h1 id="sheet-title">Smoke on<br>the Stairs.</h1><p class="intro">Smoke is filling the stair.<br>Get everyone who is home to the street.</p><p>Tap a neighbour to approach. Show the stair with your torch. Choose what to say, and listen to their answer. When someone is following, tap Street to lead them down. Their name shows whether they are following or stopped.</p><p class="minor">Tap a landing to walk. Keyboard: arrows / WASD to move, 1–4 to select. Speech keys appear on the buttons.</p><button class="primary" id="start">Enter the stairwell →</button>${showNotice ? '<p class="minor">The game lab records play, links it to other lab play on this device, and keeps it for 180 days. Turn recording off in the pause menu. Feedback is yours to review before sending. <a href="https://human.adamwhite.work/lab/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a></p>' : ''}<p class="minor">Nobody dies. This night changes no other game.</p>`,
+  `<div class="eyebrow">Lale Apartmanı · Istanbul</div><h1 id="sheet-title">Smoke on<br>the Stairs.</h1><p class="intro">Smoke is filling the stair.<br>Get everyone who is home to the street.</p><p>Tap a neighbour to approach. Show the stair with your torch. Choose what to say, and listen to their answer. When someone is following, tap Street to lead them down. Their name shows whether they are following or stopped.</p><p class="minor">Tap a landing to walk. Keyboard: arrows / WASD to move, 1–4 to select. Speech keys appear on the buttons.</p><button class="primary" id="start">Enter the stairwell →</button>${showNotice ? '<p class="minor">The game lab records play, links it to other lab play on this device, and keeps it for 180 days. Turn recording off in the pause menu. Feedback is yours to review before sending. <a href="https://human.adamwhite.work/lab/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a></p>' : ''}<p class="minor">People left inside may die. This night changes no other game.</p>`,
 );
 document.querySelector('#start')!.addEventListener('click', () => {
   started = true;

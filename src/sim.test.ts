@@ -20,7 +20,7 @@ describe('Smoke rescue decisions', () => {
     travel(g, 180, 450);
     advance(g, 3300);
     expect(g.phase).toBe('lost');
-    expect(g.people.some((r) => r.atHome && r.status === 'hospital')).toBe(true);
+    expect(g.people.some((r) => r.atHome && ['hospital', 'dead'].includes(r.status))).toBe(true);
   });
   it('refuses the first Come while Sevim still needs the books', () => {
     const g = createGame(1);
@@ -122,4 +122,81 @@ describe('Smoke rescue decisions', () => {
     bad.inputs[0]!.input = { type: 'move', x: 180, y: 110 };
     expect(() => replayRun(bad)).toThrow('hash mismatch');
   });
+});
+
+describe('resident smoke outcomes', () => {
+  it('can kill residents left inside and preserves exact seeded replay', () => {
+    const g = createGame(4);
+    advance(g, 3300);
+    expect(g.people.some((r) => r.status === 'dead')).toBe(true);
+    expect(g.phase).toBe('lost');
+    expect(stateHash(replayRun(exportRun(g)))).toBe(stateHash(g));
+    for (const r of g.people.filter((r) => r.status === 'dead'))
+      expect(g.events.some((e) => e.text.includes(r.name) && e.text.includes('died'))).toBe(true);
+  });
+  it('accumulates smoke exposure over time and varies tolerance by seed and person', () => {
+    const g = createGame(4);
+    advance(g, 400);
+    const before = g.people.map((r) => r.smokeExposure);
+    advance(g, 400);
+    expect(g.people.every((r, i) => r.smokeExposure > before[i]!)).toBe(true);
+    expect(new Set(g.people.map((r) => r.smokeTolerance)).size).toBeGreaterThan(1);
+    expect(createGame(9).people[0]!.smokeTolerance).not.toBe(g.people[0]!.smokeTolerance);
+  });
+  it('gives a resident more exposure near the fire than on a clear landing', () => {
+    const smoky = createGame(4),
+      clear = createGame(4);
+    smoky.people[0]!.y = 365;
+    clear.people[0]!.y = 450;
+    advance(smoky, 200);
+    advance(clear, 200);
+    expect(smoky.people[0]!.smokeExposure).toBeGreaterThan(clear.people[0]!.smokeExposure);
+  });
+  it('leaves early firefighter survivors alive but never counts them as a rescue', () => {
+    const g = createGame(4);
+    g.deadline = 1;
+    step(g);
+    expect(g.people.every((r) => r.status === 'hospital')).toBe(true);
+    expect(g.rescued).toHaveLength(0);
+  });
+  it('stops exposure outside and distinguishes escort from autonomous escape', () => {
+    const g = createGame(4);
+    for (const [i, status] of [
+      [0, 'following'],
+      [1, 'escaping'],
+    ] as const) {
+      const r = g.people[i]!;
+      r.status = status;
+      r.y = 449;
+      r.x = 180;
+    }
+    step(g);
+    expect(g.people[0]!.exitMethod).toBe('escorted');
+    expect(g.people[1]!.exitMethod).toBe('alone');
+    const exposure = g.people[0]!.smokeExposure;
+    advance(g, 3300);
+    expect(g.people[0]!.status).toBe('safe');
+    expect(g.people[0]!.smokeExposure).toBe(exposure);
+    expect(g.phase).toBe('lost');
+  });
+  it('rejects historical replay formats explicitly', () => {
+    const run = exportRun(createGame(4));
+    expect(run.format).toBe('smoke-3');
+    expect(() => replayRun({ ...run, format: 'smoke-2' } as unknown as typeof run)).toThrow(
+      'Unsupported Smoke replay version',
+    );
+  });
+});
+
+it('does not let Burak keep helping or alter Sevim after she dies', () => {
+  const g = createGame(4);
+  const sevim = g.people[0]!,
+    burak = g.people[1]!;
+  Object.assign(sevim, { status: 'dead', action: 'dead', taskTicks: 79, line: 'Died from smoke inside.' });
+  Object.assign(burak, { status: 'helping', action: 'help', x: sevim.x, y: sevim.y });
+  g.routeFound = true;
+  step(g);
+  expect(sevim.booksReady).toBe(false);
+  expect(sevim.line).toBe('Died from smoke inside.');
+  expect(burak.action).not.toBe('help');
 });

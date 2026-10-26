@@ -91,15 +91,31 @@ test('speech is contextual, all events persist, and pause has navigation', async
 });
 
 test('keyboard climbs, export replays and a complete loss names the outcome', async ({ page }) => {
-  await page.goto('/?lab=1');
+  await page.goto('/?lab=1&seed=4');
+  await expect(page.getByText('People left inside may die.')).toBeVisible();
   await page.getByRole('button', { name: 'Enter the stairwell' }).click();
   await page.keyboard.down('ArrowUp');
   await page.waitForTimeout(350);
   await page.keyboard.up('ArrowUp');
   expect(await page.evaluate(() => window.smoke.getState().player.targetY)).toBeLessThan(450);
   await page.evaluate(() => window.smoke.advance(3300));
-  await expect(page.getByRole('heading', { name: /Everyone is out|made it out with you/ })).toBeVisible();
-  await expect(page.getByText(/Nobody died/)).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Everyone is out|walked out with you/ })).toBeVisible();
+  const people = await page.evaluate(() =>
+    window.smoke
+      .getState()
+      .people.filter((p) => p.atHome)
+      .map((p) => ({ name: p.name, status: p.status })),
+  );
+  expect(people.some((p) => p.status === 'dead')).toBe(true);
+  for (const person of people) {
+    const line = page.getByRole('dialog').getByRole('listitem').filter({ hasText: person.name });
+    await expect(line).toHaveCount(1);
+    await expect(line).toContainText(person.status === 'dead' ? 'died from smoke' : 'hospital');
+  }
+  await expect(page.getByRole('dialog')).not.toContainText(/Nobody died|made it out with you/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+    page.viewportSize()!.width,
+  );
   const result = await page.evaluate(() => ({
     hash: window.smoke.exportRun().hash,
     replay: window.smoke.replayCheck(),
@@ -162,46 +178,69 @@ test('screen teaches an escort and exposes smoke timing in words', async ({ page
   expect(hashes[0]).toBe(hashes[1]);
 });
 
-test('cold policy wins using rendered text and enabled controls only', async ({ page }) => {
-  test.setTimeout(60000);
-  await page.goto('/?lab=1&seed=4');
-  await page.getByRole('button', { name: 'Enter the stairwell' }).click();
-  for (let second = 0; second < 160; second++) {
-    if (await page.getByRole('heading', { name: /Everyone is out|made it out with you/ }).isVisible()) break;
-    const screen = (await page.evaluate(() => ({
-      phase: 'playing',
-      dialogue: document.querySelector('#line')!.textContent!,
-      torch: document.querySelector('[data-action="torch"]')!.getAttribute('aria-pressed') === 'true',
-      timer: document.querySelector('#smoke-clock')!.textContent!,
-      guidance: document.querySelector('#guidance')!.textContent!,
-      selected: (document.querySelector('.people .active') as HTMLElement).dataset.id!,
-      people: Array.from(document.querySelectorAll<HTMLElement>('.people button')).map((button) => ({
-        id: button.dataset.id!,
-        name: button.querySelector('span')!.textContent!,
-        status: button.querySelector('small')!.textContent!,
-      })),
-      available: Array.from(document.querySelectorAll<HTMLButtonElement>('[data-action]'))
-        .filter((button) => !button.disabled && button.dataset.action !== 'torch')
-        .map((button) => button.dataset.action!),
-    }))) as Screen;
-    const command = coldPolicy(screen);
-    try {
-      if (command?.type === 'select')
-        await page.locator(`[data-id="${command.id}"]`).click({ timeout: 1000 });
-      if (command?.type === 'street')
-        await page.getByRole('button', { name: 'Street', exact: true }).click({ timeout: 1000 });
-      if (command?.type === 'speech')
-        await page.locator(`[data-action="${command.action}"]`).click({ timeout: 1000 });
-    } catch (error) {
-      // The real-time ticker can finish the run between observation and click.
-      // Accept that outcome only when the actual outcome dialog is visible.
-      if (await page.getByRole('heading', { name: /Everyone is out|made it out with you/ }).isVisible())
-        break;
-      throw error;
-    }
-    await page.evaluate(() => window.smoke.advance(20));
-  }
-  await expect(page.getByRole('heading', { name: 'Everyone is out.' })).toBeVisible();
-  const hashes = await page.evaluate(() => [window.smoke.exportRun().hash, window.smoke.replayCheck()]);
-  expect(hashes[0]).toBe(hashes[1]);
-});
+for (const leaveDerya of [false, true]) {
+  test(
+    leaveDerya
+      ? 'leaving Derya names the cost and separates solo escape'
+      : 'cold policy wins using rendered text and enabled controls only',
+    async ({ page }) => {
+      test.setTimeout(60000);
+      await page.goto('/?lab=1&seed=4');
+      await page.getByRole('button', { name: 'Enter the stairwell' }).click();
+      for (let second = 0; second < 160; second++) {
+        if (await page.getByRole('heading', { name: /Everyone is out|walked out with you/ }).isVisible())
+          break;
+        const screen = (await page.evaluate(() => ({
+          phase: 'playing',
+          dialogue: document.querySelector('#line')!.textContent!,
+          torch: document.querySelector('[data-action="torch"]')!.getAttribute('aria-pressed') === 'true',
+          timer: document.querySelector('#smoke-clock')!.textContent!,
+          guidance: document.querySelector('#guidance')!.textContent!,
+          selected: (document.querySelector('.people .active') as HTMLElement).dataset.id!,
+          people: Array.from(document.querySelectorAll<HTMLElement>('.people button')).map((button) => ({
+            id: button.dataset.id!,
+            name: button.querySelector('span')!.textContent!,
+            status: button.querySelector('small')!.textContent!,
+          })),
+          available: Array.from(document.querySelectorAll<HTMLButtonElement>('[data-action]'))
+            .filter((button) => !button.disabled && button.dataset.action !== 'torch')
+            .map((button) => button.dataset.action!),
+        }))) as Screen;
+        if (leaveDerya) screen.people = screen.people.filter((p) => p.id !== 'derya');
+        const command = coldPolicy(screen);
+        try {
+          if (command?.type === 'select')
+            await page.locator(`[data-id="${command.id}"]`).click({ timeout: 1000 });
+          if (command?.type === 'street')
+            await page.getByRole('button', { name: 'Street', exact: true }).click({ timeout: 1000 });
+          if (command?.type === 'speech')
+            await page.locator(`[data-action="${command.action}"]`).click({ timeout: 1000 });
+        } catch (error) {
+          // The real-time ticker can finish the run between observation and click.
+          // Accept that outcome only when the actual outcome dialog is visible.
+          if (await page.getByRole('heading', { name: /Everyone is out|walked out with you/ }).isVisible())
+            break;
+          throw error;
+        }
+        await page.evaluate(() => window.smoke.advance(20));
+      }
+      if (leaveDerya) {
+        await expect(page.getByRole('heading', { name: '2 walked out with you.' })).toBeVisible();
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toContainText('Sevim walked out with you.');
+        await expect(dialog).toContainText('Hacer walked out with you.');
+        await expect(dialog).toContainText('Burak escaped alone.');
+        await expect(dialog).toContainText('Derya was left inside');
+        await expect(dialog).toContainText(/Derya.*(?:died from smoke|hospital)/);
+        if (process.env.SMOKE_SCREENSHOT_DIR && test.info().project.name.startsWith('chromium-'))
+          await page.screenshot({
+            path: `${process.env.SMOKE_SCREENSHOT_DIR}/${test.info().project.name === 'chromium-phone' ? 'phone' : 'wide'}.png`,
+          });
+      } else {
+        await expect(page.getByRole('heading', { name: 'Everyone is out.' })).toBeVisible();
+      }
+      const hashes = await page.evaluate(() => [window.smoke.exportRun().hash, window.smoke.replayCheck()]);
+      expect(hashes[0]).toBe(hashes[1]);
+    },
+  );
+}
