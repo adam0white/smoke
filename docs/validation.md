@@ -11,3 +11,5 @@ The first browser pass exposed Pixi autoDensity inline styles overriding respons
 One independent Codex review found attempt identity reuse in lab recording. Retries and playback now change the trackRun key; playback is marked in recorded export. No blocking/high finding remained. Review receipt: coordinator scratch ng-smoke/independent-review.md.
 
 Automated refusal checks show text and HF refusal state. They do not establish human understanding. The coordinator's panel must observe whether players interpret the refusal and change action.
+
+Root also completed an ordinary live-time browser rescue in the existing Chrome profile, using person selection, speech, torch and a tap on the ground-floor landing. All four reached the door. The same run was inspected at360×690 and1280×800. The outcome exposed repeated identical arrival lines; they were replaced with distinct, outcome-grounded lines.

@@ -35,6 +35,7 @@ First test one moving companion and Sevim's refusal before expanding the run. Br
 ## Deferred
 
 - 2026-11-03: panel observation of refusal readability and whether players change action; coordinator owns panel.
+- 2026-11-03: separate overlapping name labels when several companions share a stair, after panel readability evidence.
 - 2026-11-03: longer six-minute run, new fire layouts and sound, after the short run proves persuasion.
 - 2026-11-03: carrying a downed person, only if it improves this game without turning people into cargo.
 - 2026-11-03: cross-game continuation remains deliberately absent; needs a separate reviewed decision.

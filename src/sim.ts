@@ -378,7 +378,16 @@ export function step(g: Game, input?: Input): void {
     } else if (r.status === 'escaping') approach(r, 180, 450, 1.7);
     if ((r.status === 'following' || r.status === 'escaping') && r.y >= 435) {
       r.status = 'safe';
-      r.line = 'Outside. I am here.';
+      r.line =
+        r.id === 'sevim'
+          ? 'The books are with me. I am outside.'
+          : r.id === 'burak'
+            ? g.rescued.includes('sevim')
+              ? 'Sevim is out. The front stair was clear.'
+              : 'I am outside. I checked the front stair.'
+            : r.id === 'derya'
+              ? 'Outside. I need to sit for a moment.'
+              : 'That was the right stair. I know it now.';
       g.rescued.push(r.id);
       event(g, `${r.name} reached the front door.`);
       if (r.hf.activity)
