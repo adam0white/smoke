@@ -1,3 +1,4 @@
+import 'pixi.js/unsafe-eval';
 import { claimLabNotice, createLab } from '@adam0white/lab-client';
 import { Application, Container, Graphics, Text } from 'pixi.js';
 import { createGame, exportRun, type Input, type RunExport, replayRun, stateHash, step } from './sim';

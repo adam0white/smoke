@@ -18,7 +18,8 @@ declare global {
 test('a readable refusal, moving companion, pause, and replay export', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/?lab=1');
+  const response = await page.goto('/?lab=1');
+  expect(response?.headers()['content-security-policy']).toContain("script-src 'self'");
   await page.getByRole('button', { name: 'Enter the stairwell' }).click();
   await expect(page.locator('canvas')).toBeVisible();
   await page.getByRole('button', { name: '1 Sevim', exact: true }).click();
