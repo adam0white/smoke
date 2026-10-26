@@ -1,0 +1,37 @@
+{
+  "name": "smoke",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "Smoke on the Stairs: a night fire, four neighbours, and a voice they can refuse.",
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": "26.12.0"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "node scripts/stamp-release.mjs && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "check:lane": "pnpm lint && pnpm typecheck && pnpm test"
+  },
+  "dependencies": {
+    "@adam0white/human-framework": "3.2.0",
+    "@adam0white/lab-client": "file:vendor/adam0white-lab-client-0.4.11.tgz",
+    "pixi.js": "8.16.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.3",
+    "@playwright/test": "1.64.1",
+    "@types/node": "26.6.5",
+    "typescript": "7.0.2",
+    "vite": "8.3.5",
+    "vitest": "5.0.5",
+    "wrangler": "4.152.0"
+  }
+}

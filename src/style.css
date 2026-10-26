@@ -1,0 +1,330 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap");
+:root {
+  font-family: "DM Sans", sans-serif;
+  color: #eee8d8;
+  background: #202521;
+  font-synthesis: none;
+  --paper: #eee8d8;
+  --ink: #202521;
+  --coral: #de795d;
+  --amber: #edba65;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  overflow: hidden;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+  color: inherit;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--amber);
+  outline-offset: 3px;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+#app {
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: 64px minmax(0, 1fr) auto;
+  max-width: 1100px;
+  margin: auto;
+  padding: 0 32px;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #eee8d82a;
+}
+header .brand {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+header .brand strong {
+  display: block;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 19px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 500;
+  margin-top: 2px;
+}
+.plain {
+  border: 1px solid #eee8d84a;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  background: none;
+  font-size: 20px;
+}
+.stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  isolation: isolate;
+}
+.scene {
+  height: 100%;
+  aspect-ratio: 360 / 500;
+  max-width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+.scene canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.stage-note {
+  position: absolute;
+  left: 0;
+  bottom: 35px;
+  width: 190px;
+  color: #b6b9ae;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.stage-note b {
+  display: block;
+  color: var(--paper);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.stage-number {
+  position: absolute;
+  right: 0;
+  top: 40px;
+  writing-mode: vertical-rl;
+  color: #92978b;
+  font-size: 10px;
+  letter-spacing: 3px;
+}
+.controls {
+  border-top: 1px solid #eee8d82a;
+  padding: 14px 0 18px;
+  max-width: 600px;
+  width: 100%;
+  margin: auto;
+}
+.dialogue {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 17px;
+  line-height: 1.25;
+  color: var(--amber);
+}
+.dialogue:before {
+  content: "“";
+  font-size: 42px;
+  line-height: 25px;
+  color: var(--coral);
+}
+.people {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.people button {
+  flex: 1;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 6px 2px;
+  background: transparent;
+  font-size: 12px;
+  color: #b6b9ae;
+}
+.people button.active {
+  color: var(--paper);
+  border-color: var(--coral);
+}
+.actions {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.actions button {
+  border: 1px solid #eee8d840;
+  background: #ffffff06;
+  padding: 11px 3px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+.actions button:first-child {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--paper);
+}
+.actions small {
+  font-size: 9px;
+  display: block;
+  margin-top: 4px;
+  opacity: 0.55;
+}
+.hint {
+  font-size: 10px;
+  color: #9b9f93;
+  text-align: center;
+  margin: 10px 0 0;
+  letter-spacing: 0.3px;
+}
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: #131b17c9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(5px);
+}
+.sheet {
+  width: min(100%, 450px);
+  max-height: 95dvh;
+  overflow: auto;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 35px;
+  box-shadow: 7px 7px 0 #de795d55;
+  position: relative;
+}
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 10px;
+  color: #726e60;
+}
+.sheet h1 {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 44px;
+  font-weight: 500;
+  line-height: 1.02;
+  margin: 16px 0 20px;
+  letter-spacing: -1.7px;
+}
+.sheet h2 {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 30px;
+  font-weight: 500;
+  margin: 14px 0;
+}
+.sheet p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #5c6055;
+}
+.sheet .intro {
+  font-size: 16px;
+  color: #292f26;
+}
+.sheet .primary,
+.sheet .secondary {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--ink);
+  padding: 14px;
+  background: var(--ink);
+  color: var(--paper);
+  margin-top: 12px;
+  border-radius: 2px;
+}
+.sheet .secondary {
+  background: transparent;
+  color: var(--ink);
+}
+.sheet .minor {
+  font-size: 11px;
+  color: #727367;
+}
+.sheet label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+  margin: 20px 0;
+}
+.sheet input {
+  accent-color: #b85d45;
+}
+.sheet ol {
+  padding-left: 24px;
+  line-height: 1.7;
+  font-size: 14px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+[hidden] {
+  display: none;
+}
+@media (max-width: 700px) {
+  #app {
+    padding: 0 16px;
+    grid-template-rows: 52px minmax(0, 1fr) auto;
+  }
+  .stage-note,
+  .stage-number {
+    display: none;
+  }
+  header .brand strong {
+    font-size: 17px;
+  }
+  .controls {
+    padding: 10px 0 max(12px, env(safe-area-inset-bottom));
+  }
+  .dialogue {
+    font-size: 15px;
+    min-height: 38px;
+    margin-bottom: 6px;
+  }
+  .people {
+    margin-bottom: 7px;
+  }
+  .actions button {
+    padding: 10px 2px;
+    font-size: 11px;
+  }
+  .actions small {
+    display: none;
+  }
+  .hint {
+    font-size: 9px;
+    margin: 8px 0 0;
+  }
+  .sheet {
+    padding: 26px;
+  }
+  .sheet h1 {
+    font-size: 39px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .veil {
+    backdrop-filter: none;
+  }
+}
