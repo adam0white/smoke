@@ -17,6 +17,8 @@ Cold wins take42.85–77.8s; competent39.45–59.5s. Idle first deaths across th
 
 Browser checks:26passed,2inapplicable WebKit CPU skips at360×690 and1280×800 in Chromium and WebKit. Both win and partial endings replay exactly. A rendered-text policy deliberately leaves Derya inside: Sevim and Hacer walk out with the caretaker, Burak escapes alone, and Derya dies. The heading counts2escorted. A focused4-project rerun after warning changes also passes. Retained phone/wide screenshots show the complete ending without clipping. Chromium4× CPU initial local p95:2.8ms phone,2.2ms wide; unchanged16ms gate.
 
+The first iteration4 CI (6726551, run40317627440) passed24browser checks but timed out both Chromium partial-run checks at60s. The partial policy kept polling an unchanged DOM until the fire ended. The harness now confirms all intended rescues show Outside/Away tonight, then advances the abandoned resident’s remaining night in one lab-clock call. It retains the named outcome, escorted count, solo escape and exact replay assertions. No gameplay change or timeout increase was made.
+
 One independent read-only Codex review of the finished slice found no unresolved findings, including the dead-Sevim helper guard. Final CI and live receipts are recorded in the coordinator report.
 
 Replay format is now smoke-3. Changed hazard state/mechanics intentionally require older smoke-2 exports to use their original build. New exports replay exactly; HF remains3.2.0.

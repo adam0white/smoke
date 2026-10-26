@@ -206,7 +206,16 @@ for (const leaveDerya of [false, true]) {
             .filter((button) => !button.disabled && button.dataset.action !== 'torch')
             .map((button) => button.dataset.action!),
         }))) as Screen;
-        if (leaveDerya) screen.people = screen.people.filter((p) => p.id !== 'derya');
+        if (leaveDerya) {
+          screen.people = screen.people.filter((p) => p.id !== 'derya');
+          // Once all intended rescues are visibly outside, there are no more inputs.
+          // Advance the abandoned resident's remaining night in one call instead
+          // of polling the same DOM once per simulated second on slow CI browsers.
+          if (screen.people.every((p) => p.status === 'Outside' || p.status === 'Away tonight')) {
+            await page.evaluate(() => window.smoke.advance(3300));
+            break;
+          }
+        }
         const command = coldPolicy(screen);
         try {
           if (command?.type === 'select')
