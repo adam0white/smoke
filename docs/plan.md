@@ -1,12 +1,14 @@
-# Smoke implementation plan
+# Smoke iteration 2 plan
 
-Goal: finish the small night and verify delivery. Design: docs/design.md.
+Apply Claude's 2026-10-26 design read before lab round 1. Acceptance remains the delivered small run in docs/design.md; panel acceptance belongs to Adam and the coordinator.
 
-- [x] Simulation: HF people, visible refusal, autonomous help, fixed tick input replay. Prove moving companion/refusal first, then win/loss/partial and replay hashes.
-- [x] View: cut-paper Pixi renderer, keyboard and touch, figures above thumbs, notice, feedback, pause, export, lab tools.
-- [x] Integrate: strict tooling, focused Vitest, Chromium/WebKit both sizes, context loss and CPU frame check.
-- [x] Independent Codex review. Fix verified findings, run required checks.
-- [ ] Signed source, green CI exact commit, clean build/deploy and manifest. Central listing in isolated delivery lane; coordinator deploys central site.
-- [ ] Readiness board/report, exact PID cleanup, final worktree lists.
+1. Remove silent-proximity rescue. Use published HF 3.2.0 decisions, refusal and voice trust. Advance HF before play can end.
+2. Seed people at home, sleep and hesitation, and the smoke origin.
+3. Keep a readable history of every resident line and arrival.
+4. Make smoke cause a pre-deadline breath loss; make its dense and thin phases visible.
+5. Use the stair consistently, disable irrelevant speech, separate larger name labels and shorten instructions.
+6. Run fixed bots over at least 20 seeds: silent wins zero, careless losses possible, competent wins most; verify exact replay hashes and corrupt-run rejection.
+7. Play both browser sizes, run Chromium/WebKit e2e, independent Codex review, lint/typecheck/tests/build. Fix verified findings.
+8. Signed commit with Codex trailer; exact green CI; clean deploy; verify public release.json and live UI. Update report, STATUS and board row. Remove own worktree/branch and stop own processes.
 
-Review focus: repeated shouts; burst input replay; background time; blocked storage; touch hit targets and WebGL context loss.
+The existing fast-response request stays with the all director. Do not copy missing HF capabilities into host logic. The current PixiJS stack stays: the tech spike validates its direct HF integration; a stack migration would not repair this design failure.

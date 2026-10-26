@@ -3,12 +3,14 @@ import {
   answerNow,
   begin,
   createPerson,
+  credence,
   decide,
   finish,
   tick as humanTick,
   interrupt,
   MINUTES_PER_YEAR,
   type Person,
+  perceive,
   type SuggestionResolution,
 } from '@adam0white/human-framework';
 
@@ -35,7 +37,10 @@ export interface Resident {
   status: 'waiting' | 'following' | 'escaping' | 'helping' | 'safe' | 'hospital';
   line: string;
   action: string;
-  care: number;
+  atHome: boolean;
+  asleep: boolean;
+  holdingBack: boolean;
+  taskTicks: number;
   booksReady: boolean;
   routeKnown: boolean;
   hf: Person;
@@ -48,6 +53,10 @@ export interface Game {
   player: { x: number; y: number; targetX: number; targetY: number };
   people: Resident[];
   smoke: number[];
+  smokeOrigin: number;
+  wave: 'thin' | 'thick';
+  nextWaveTicks: number;
+  hfTicks: number;
   torch: boolean;
   breath: number;
   deadline: number;
@@ -59,7 +68,7 @@ export interface Game {
   lastDecisionTick: number;
 }
 export interface RunExport {
-  format: 'smoke-1';
+  format: 'smoke-2';
   engine: '3.2.0';
   seed: number;
   ticks: number;
@@ -121,7 +130,7 @@ const cast = [
     age: 58,
     y: 110,
     traits: { extraversion: 0.8, agreeableness: 0.45, honesty: 0.5, emotionality: 0.6 },
-    line: 'Which stair reaches the front door?',
+    line: 'I cannot see the stair to the front door.',
   },
 ] as const;
 
@@ -138,33 +147,54 @@ export function createGame(seed: number): Game {
       x: i % 2 ? 268 : 92,
       y: c.y,
       homeY: c.y,
-      status: 'waiting',
-      line: c.line,
+      status: i === normalizedSeed % 5 ? 'safe' : 'waiting',
+      atHome: i !== normalizedSeed % 5,
+      asleep: i === (normalizedSeed >>> 1) % 4,
+      holdingBack: i === (normalizedSeed + 1) % 4,
+      taskTicks: 0,
+      line:
+        i === normalizedSeed % 5
+          ? 'Away tonight.'
+          : i === (normalizedSeed >>> 1) % 4
+            ? 'I was asleep. Speak to me so I know who is there.'
+            : c.line,
       action: 'wait',
-      care: 0,
       booksReady: c.id !== 'sevim',
       routeKnown: c.id === 'burak',
       hf: createPerson({
         id: `hf.cast.${c.id}.${c.id === 'hacer' ? 'voice' : 'stairwell'}`,
         name: c.name,
         seed: normalizedSeed + i + 1,
-        now: START,
+        now: START - 1,
         bornAt: START - c.age * MINUTES_PER_YEAR,
         sex: c.id === 'burak' ? 'male' : 'female',
         traits: { ...baselineTraits, ...c.traits },
         values: { ...baselineValues },
-        body: { sleepPressure: c.id === 'derya' ? 0.55 : 0.2, satiety: 0.8, hydration: 0.8 },
-        needs: { safety: 0.25, meaning: 0.35, belonging: 0.45, autonomy: 0.7 },
+        body: {
+          sleepPressure: i === (normalizedSeed >>> 1) % 4 ? 0.72 : c.id === 'derya' ? 0.55 : 0.2,
+          satiety: 0.8,
+          hydration: 0.8,
+        },
+        needs: {
+          safety: 0.8,
+          meaning: c.id === 'sevim' ? 0.05 : 0.65,
+          belonging: 0.55,
+          autonomy: i === (normalizedSeed + 1) % 4 ? 0.3 : 0.7,
+        },
         voices: [{ voiceId: 'player', trust: c.id === 'hacer' ? 0.35 : 0.6 }],
         lexicon: { plainEnglish: true, names: { player: 'the caretaker' } },
         enable: { suggestionReasons: true },
       }),
     })),
     smoke: [0, 0, 0, 0, 0],
+    smokeOrigin: 1 + (normalizedSeed % 4),
+    wave: 'thin',
+    nextWaveTicks: 0,
+    hfTicks: 0,
     torch: false,
     breath: 0,
     deadline: 3000 + (normalizedSeed % 201),
-    notice: 'Tap a landing to walk. Speak nearby. Stay to show you mean it.',
+    notice: 'Speak to each neighbour. Show the stair with the torch. Cross when smoke thins.',
     rescued: [],
     routeFound: false,
     log: [],
@@ -186,42 +216,56 @@ function offer(id: string, label: string, advertises: Affordance['advertises'], 
   return { id, action: id, label, duration: 1, effort, advertises };
 }
 
-function offers(g: Game, r: Resident): Affordance[] {
-  const supported = (r.id !== 'hacer' && near(g, r) && r.care >= 40) || r.routeKnown;
-  const ready = r.booksReady && supported;
+// Offers describe observed surroundings. HF scores needs, fear, trust and suggestions.
+// Following the caretaker requires an invitation; proximity never creates one.
+function offers(g: Game, r: Resident, invitation?: string): Affordance[] {
+  const route = credence(r.hf, 'stair-visible');
+  const smoke = g.smoke[Math.max(1, Math.round((450 - r.y) / 85))] ?? 0;
   const list = [
-    offer(
-      'wait',
-      r.id === 'sevim' && !r.booksReady ? 'keep the books together' : 'wait by the familiar door',
-      { safety: 0.65, autonomy: 0.15, meaning: r.booksReady ? 0 : 0.7 },
-    ),
+    offer('wait', r.booksReady ? 'wait by my door' : 'keep the books together', {
+      safety: 0.48,
+      autonomy: 0.65,
+      meaning: r.booksReady ? 0 : 0.95,
+    }),
     offer('rest', 'catch my breath', { rest: 0.15 }),
-    offer(
-      'follow',
-      'walk downstairs with the caretaker',
-      { safety: ready && near(g, r) ? 0.95 : 0.08, belonging: ready && near(g, r) ? 0.5 : 0.02 },
-      0.12,
-    ),
   ];
-  if (r.booksReady && r.routeKnown && (r.id !== 'burak' || g.routeFound))
-    list.push(offer('escape', 'take the known stair to the front door', { safety: 0.9 }, 0.1));
-  if (r.id === 'sevim' && !r.booksReady)
+  if (invitation === 'follow')
     list.push(
-      offer('books', 'secure the exercise books together', {
-        meaning: 0.9,
-        safety: near(g, r) || g.routeFound ? 0.65 : 0.02,
-        belonging: 0.2,
-      }),
+      offer(
+        'follow',
+        'walk down the stair with the caretaker',
+        {
+          safety: Math.max(0.1, route * 0.95 - smoke * 0.15),
+          belonging: r.booksReady ? 0.35 : 0.08,
+          meaning: r.booksReady ? 0.3 : 0,
+          autonomy: 0.2,
+        },
+        0.12,
+      ),
+    );
+  if (r.id === 'burak' && g.routeFound && (g.people[0]!.booksReady || !g.people[0]!.atHome))
+    list.push(
+      offer(
+        'escape',
+        'take the stair to the front door',
+        { safety: 0.95, autonomy: 0.9, belonging: 0.8 },
+        0.1,
+      ),
+    );
+  if (invitation === 'books' && r.id === 'sevim' && !r.booksReady)
+    list.push(
+      offer('books', 'tie the exercise books in a bundle', { meaning: 1, safety: 0.8, belonging: 0.8 }),
     );
   if (r.id === 'burak' && !g.routeFound)
-    list.push(offer('route', 'check the front stair and come back', { safety: 1, competence: 0.4 }, 0.1));
-  if (r.id === 'burak' && g.routeFound && !g.people[0]!.booksReady)
-    list.push(offer('help', 'help Sevim with the books', { safety: 0.9, meaning: 0.7, belonging: 0.5 }, 0.1));
+    list.push(offer('route', 'check the stair and return', { safety: 0.95, competence: 0.6 }, 0.1));
+  if (r.id === 'burak' && g.routeFound && g.people[0]!.atHome && !g.people[0]!.booksReady)
+    list.push(offer('help', 'help Sevim tie the books', { safety: 0.9, meaning: 0.95, belonging: 0.8 }, 0.1));
   return list;
 }
 
 function applyChoice(r: Resident, choice: string) {
   r.action = choice;
+  if (choice === 'wait' || choice === 'rest') r.status = 'waiting';
   if (choice === 'follow') {
     r.status = 'following';
     r.line = 'Stay where I can see you. I am coming.';
@@ -233,7 +277,7 @@ function applyChoice(r: Resident, choice: string) {
     r.line = 'Sevim, I can hold that stack while you tie it.';
   } else if (choice === 'route') {
     r.status = 'helping';
-    r.line = 'I will check the front stair. Wait for my word.';
+    r.line = 'I will check the stair. Wait for my word.';
   } else if (choice === 'books') {
     r.status = 'waiting';
     r.line = 'Hold these steady. I can tie them in one bundle.';
@@ -243,11 +287,13 @@ function applyChoice(r: Resident, choice: string) {
 function choose(
   g: Game,
   r: Resident,
-  suggestion?: { voiceId: string; affordanceId: string; strength: number },
+  suggestion?: { voiceId: string; affordanceId: string; strength: number; insist?: boolean },
 ) {
   if (g.lastDecisionTick === g.tick) return;
   g.lastDecisionTick = g.tick;
-  const available = offers(g, r);
+  const previousLine = r.line;
+  const previousAction = r.action;
+  const available = offers(g, r, suggestion?.affordanceId);
   if (suggestion) {
     const answer = answerNow(r.hf, available, suggestion);
     r.resolution = answer.resolution;
@@ -273,16 +319,17 @@ function choose(
     begin(r.hf, picked, record);
     applyChoice(r, picked.id);
   }
-  if (suggestion && record.suggestion?.verdict !== 'assented') r.line = refusal(r);
-  if (suggestion) event(g, `${r.name}: ${r.line}`);
+  if (suggestion && ['refused', 'deferred', 'modified'].includes(record.suggestion?.verdict ?? ''))
+    r.line = refusal(r);
+  if (record.suggestion?.verdict === 'complied') r.line = 'I will come, but stop pushing me.';
+  if (suggestion || r.line !== previousLine || r.action !== previousAction) event(g, `${r.name}: ${r.line}`);
 }
 
 function refusal(r: Resident): string {
   if (r.resolution?.reason === 'distrust')
     return 'You keep pushing. I need to see a clear way, not hear it again.';
   if (r.id === 'sevim' && !r.booksReady) return 'Not without the books. Stay and help me bundle them.';
-  if (r.id === 'hacer' && !r.routeKnown) return 'I cannot see where that stair goes. Show me with the torch.';
-  if (r.id === 'derya' && r.care < 40) return 'Wait beside me a moment. I need to get my bearings.';
+  if (!r.routeKnown) return 'I cannot see the stair. Turn on the torch and show me.';
   return r.resolution?.says ?? 'Give me a moment.';
 }
 
@@ -295,25 +342,60 @@ function approach(p: { x: number; y: number }, x: number, y: number, speed: numb
   else p.y = rounded(p.y + Math.sign(y - p.y) * Math.min(Math.abs(y - p.y), speed));
 }
 
+export function canSpeak(g: Game, id: string, line: Extract<Input, { type: 'speak' }>['line']): boolean {
+  const r = g.people.find((p) => p.id === id);
+  if (!r?.atHome || !near(g, r) || r.status === 'safe' || r.status === 'hospital') return false;
+  if (r.action === 'books') return false;
+  if (r.status !== 'waiting' && !(line === 'come' && r.status === 'following')) return false;
+  if (line === 'books') return r.id === 'sevim' && !r.booksReady;
+  if (line === 'route') return (r.id === 'burak' && !g.routeFound) || (!r.routeKnown && g.torch);
+  return true;
+}
 function speak(g: Game, input: Extract<Input, { type: 'speak' }>) {
   const r = g.people.find((p) => p.id === input.id);
-  if (!r || r.status === 'safe' || r.status === 'hospital') return;
-  if (!near(g, r)) {
-    g.notice = `Walk closer to ${r.name} so they can hear you.`;
+  if (!r || !canSpeak(g, input.id, input.line)) return;
+  if (r.asleep) {
+    r.asleep = false;
+    r.line = 'I am awake. Tell me what is happening.';
+    event(g, `${r.name}: ${r.line}`);
+  }
+  if (input.line === 'route' && r.id !== 'burak') {
+    r.routeKnown = true;
+    perceive(r.hf, [
+      {
+        at: r.hf.now,
+        channel: 'saw',
+        kind: 'stair',
+        salience: 0.8,
+        summary: 'I can see the stair to the front door.',
+        claims: [{ prop: 'stair-visible', value: true, confidence: 1 }],
+      },
+    ]);
+    r.line = 'I can see the stair in your torchlight. Walk with me.';
+    event(g, `${r.name}: ${r.line}`);
     return;
   }
-  const id =
-    input.line === 'books' && r.id === 'sevim' && !r.booksReady
-      ? 'books'
-      : input.line === 'route' && r.id === 'burak' && !g.routeFound
-        ? 'route'
-        : 'follow';
-  choose(g, r, { voiceId: 'player', affordanceId: id, strength: input.line === 'come' ? 0.9 : 0.55 });
+  const id = input.line === 'books' ? 'books' : input.line === 'route' ? 'route' : 'follow';
+  choose(g, r, {
+    voiceId: 'player',
+    affordanceId: id,
+    strength: input.line === 'come' ? 0.9 : 0.65,
+    insist:
+      input.line === 'come' &&
+      r.hf.will.voices.some((v) => v.voiceId === 'player' && v.accepted + v.refused > 0),
+  });
 }
 
 export function step(g: Game, input?: Input): void {
   if (g.phase !== 'playing') return;
   g.tick++;
+  if (g.tick === 1) {
+    for (const r of g.people) event(g, `${r.name}: ${r.line}`);
+    event(
+      g,
+      `Smoke is starting on landing ${g.smokeOrigin}. Dark waves slow you and cost breath. Cross the stair when smoke thins.`,
+    );
+  }
   if (input) {
     g.log.push({ tick: g.tick, input: structuredClone(input) });
     if (input.type === 'move' && Number.isFinite(input.x) && Number.isFinite(input.y)) {
@@ -324,50 +406,80 @@ export function step(g: Game, input?: Input): void {
     } else if (input.type === 'torch') g.torch = !g.torch;
     else if (input.type === 'speak') speak(g, input);
   }
-  const seconds = g.tick / 20;
-  const wave = ((g.tick + (g.seed % 80)) % 320) / 320;
-  const pulse = wave < 0.55 ? 0.18 : 0.8;
+  // The fire started during the preceding minute. Settle that minute before rescue decisions.
+  if (g.tick === 1 || g.tick % 1200 === 0) {
+    for (const r of g.people) humanTick(r.hf, START + Math.floor(g.tick / 1200));
+    g.hfTicks++;
+  }
+  const period = 360;
+  const waveTick = (g.tick + (g.seed % 100)) % period;
+  g.wave = waveTick < 220 ? 'thin' : 'thick';
+  g.nextWaveTicks = (waveTick < 220 ? 220 : period) - waveTick;
   g.smoke = [0, 1, 2, 3, 4].map((f) =>
-    f === 0 ? 0 : rounded(Math.min(0.94, Math.max(0, (seconds - 12) / 200) + (pulse * f) / 4)),
+    f === 0 || g.tick < Math.abs(f - g.smokeOrigin) * 100
+      ? 0
+      : rounded(
+          Math.min(
+            0.96,
+            (g.wave === 'thin' ? 0.08 : 0.76) + g.tick / 18000 + (f === g.smokeOrigin ? 0.09 : 0),
+          ),
+        ),
   );
   const floor = Math.max(0, Math.min(4, Math.round((450 - g.player.y) / 85)));
   const density = g.smoke[floor]!;
-  approach(g.player, g.player.targetX, g.player.targetY, (g.torch ? 1.9 : 2.4) * (density > 0.65 ? 0.6 : 1));
+  approach(
+    g.player,
+    g.player.targetX,
+    g.player.targetY,
+    (g.torch ? 1.65 : 2.1) * (density > 0.65 ? 0.45 : 1),
+  );
   g.breath =
-    Math.round(Math.max(0, Math.min(1, g.breath + (floor ? density * 0.00024 : -0.0018))) * 1e6) / 1e6;
-  if (g.tick % 1200 === 0) for (const r of g.people) humanTick(r.hf, START + g.tick / 1200);
+    Math.round(
+      Math.max(
+        0,
+        Math.min(1, g.breath + (floor ? density * 0.00115 - (density < 0.3 ? 0.00045 : 0) : -0.003)),
+      ) * 1e6,
+    ) / 1e6;
   for (const r of g.people) {
     if (r.status === 'safe' || r.status === 'hospital') continue;
-    if (near(g, r)) {
-      r.care++;
-      if (g.torch && r.care >= 40 && !r.routeKnown) {
-        r.routeKnown = true;
-        event(g, `${r.name} can see the stair in your torchlight.`);
+    if (r.action === 'books' && !r.booksReady) {
+      r.taskTicks++;
+      if (r.taskTicks >= 80) {
+        r.booksReady = true;
+        r.action = 'wait';
+        r.line = 'The bundle is tied. Show me the stair, then walk with me.';
+        event(g, `${r.name}: ${r.line}`);
       }
-      if (r.id === 'derya' && r.care === 40) {
-        r.routeKnown = true;
-        r.line = 'All right. I can stand. Let us go.';
-      }
-    }
-    if (r.id === 'sevim' && !r.booksReady && r.care >= 120) {
-      r.booksReady = true;
-      r.routeKnown = true;
-      event(g, 'Sevim: The bundle is tied. I can take it myself.');
     }
     if (r.status === 'helping' && r.action === 'route') {
       approach(r, 180, 450, 1.8);
       if (r.y >= 449) {
         g.routeFound = true;
         r.routeKnown = true;
+        perceive(r.hf, [
+          {
+            at: r.hf.now,
+            channel: 'saw',
+            kind: 'stair',
+            salience: 0.8,
+            summary: 'I can see the stair to the front door.',
+            claims: [{ prop: 'stair-visible', value: true, confidence: 1 }],
+          },
+        ]);
         r.status = 'waiting';
-        event(g, 'Burak: The front stair is clear between the dark waves. I am coming back for Sevim.');
+        event(g, 'Burak: I checked the stair to the front door. Cross when the smoke thins.');
         choose(g, r);
       }
     } else if (r.status === 'helping' && r.action === 'help') {
       const sevim = g.people[0]!;
       approach(r, sevim.x, sevim.y, 1.8);
       if (distance(r, sevim) < 8) {
-        sevim.care++;
+        sevim.taskTicks++;
+        if (sevim.taskTicks >= 80 && !sevim.booksReady) {
+          sevim.booksReady = true;
+          sevim.line = 'The bundle is tied. Show me the stair, then walk with me.';
+          event(g, `${sevim.name}: ${sevim.line}`);
+        }
         if (sevim.booksReady) {
           r.status = 'waiting';
           choose(g, r);
@@ -383,13 +495,13 @@ export function step(g: Game, input?: Input): void {
           ? 'The books are with me. I am outside.'
           : r.id === 'burak'
             ? g.rescued.includes('sevim')
-              ? 'Sevim is out. The front stair was clear.'
-              : 'I am outside. I checked the front stair.'
+              ? 'Sevim is out. The stair was clear.'
+              : 'I am outside. I checked the stair.'
             : r.id === 'derya'
               ? 'Outside. I need to sit for a moment.'
-              : 'That was the right stair. I know it now.';
+              : 'I can see the stair. I am outside.';
       g.rescued.push(r.id);
-      event(g, `${r.name} reached the front door.`);
+      event(g, `${r.name} reached the front door. ${r.line}`);
       if (r.hf.activity)
         finish(r.hf, {
           affordanceId: r.hf.activity.affordanceId,
@@ -405,24 +517,25 @@ export function step(g: Game, input?: Input): void {
   const slot = g.tick % 40;
   if (slot < g.people.length) {
     const r = g.people[slot]!;
-    if (r.status === 'waiting') choose(g, r);
+    if (r.status === 'waiting' && !r.asleep && r.action !== 'books') choose(g, r);
   }
-  if (g.rescued.length === g.people.length) {
+  if (g.rescued.length === g.people.filter((r) => r.atHome).length) {
     g.phase = 'won';
-    event(g, 'Everyone reached the front door. All four are safe.');
+    event(g, 'Everyone home tonight reached the front door.');
   } else if (g.tick >= g.deadline || g.breath >= 1) {
     g.phase = 'lost';
     for (const r of g.people)
       if (r.status !== 'safe') {
         r.status = 'hospital';
         r.line = 'Firefighters brought me out. I am being checked at hospital.';
+        event(g, `${r.name}: ${r.line}`);
       }
     event(
       g,
       `${g.rescued.length} reached the door with you. Firefighters brought the others out. No one died.`,
     );
-  } else if (g.tick === 1600) event(g, 'The smoke stays longer now. Cross while it thins.');
-  else if (g.tick === 2400) event(g, 'The upper stair is nearly closed. There is little time left.');
+  } else if (g.tick === 1600) event(g, 'Watch for the thin wave. Cross the stair while you can see it.');
+  else if (g.tick === 2400) event(g, 'One minute until the stair closes. Bring everyone to the front door.');
 }
 
 export function stateHash(g: Game): string {
@@ -436,7 +549,7 @@ export function stateHash(g: Game): string {
 }
 export function exportRun(g: Game): RunExport {
   return {
-    format: 'smoke-1',
+    format: 'smoke-2',
     engine: ENGINE,
     seed: g.seed,
     ticks: g.tick,
@@ -446,7 +559,7 @@ export function exportRun(g: Game): RunExport {
   };
 }
 export function replayRun(run: RunExport): Game {
-  if (run.format !== 'smoke-1' || run.engine !== ENGINE) throw new Error('Unsupported Smoke replay version.');
+  if (run.format !== 'smoke-2' || run.engine !== ENGINE) throw new Error('Unsupported Smoke replay version.');
   if (!Number.isInteger(run.ticks) || run.ticks < 0 || run.ticks > 4000)
     throw new Error('Invalid replay length.');
   const g = createGame(run.seed);

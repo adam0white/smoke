@@ -1,83 +1,107 @@
+import { seedVoice } from '@adam0white/human-framework';
 import { describe, expect, it } from 'vitest';
-import { createGame, exportRun, type Game, type Input, replayRun, stateHash, step } from './sim';
+import { createGame, exportRun, type Game, replayRun, stateHash, step } from './sim';
 
 function advance(g: Game, n: number) {
   for (let i = 0; i < n; i++) step(g);
 }
 function travel(g: Game, x: number, y: number) {
   step(g, { type: 'move', x, y });
-  for (let i = 0; i < 700 && (g.player.x !== x || g.player.y !== y); i++) step(g);
-  expect(g.player.x).toBe(x);
-  expect(g.player.y).toBe(y);
+  for (let i = 0; i < 900 && g.phase === 'playing' && (g.player.x !== x || g.player.y !== y); i++) step(g);
 }
-function rescueRun(seed: number) {
-  const g = createGame(seed);
-  step(g, { type: 'torch' });
-  for (const id of ['sevim', 'derya', 'hacer']) {
-    const person = g.people.find((p) => p.id === id)!;
-    travel(g, person.x, person.homeY);
-    advance(g, id === 'sevim' ? 150 : 65);
-    step(g, { type: 'speak', id, line: 'together' });
-  }
-  travel(g, 180, 450);
-  advance(g, 650);
-  return g;
-}
-
-describe('Smoke fixed-step host', () => {
-  it('starts one canonical profile per resident with HF 3.2 and minute-boundary clocks', () => {
+describe('Smoke rescue decisions', () => {
+  it('cannot rescue everyone by silent proximity, even with the torch', () => {
     const g = createGame(7);
-    expect(g.people.map((p) => p.name)).toEqual(['Sevim', 'Burak', 'Derya', 'Hacer']);
-    advance(g, 1199);
-    expect(g.people.every((p) => p.hf.now === 370)).toBe(true);
-    step(g);
-    expect(g.people.every((p) => p.hf.now === 371)).toBe(true);
-  });
-  it('makes an understood refusal and books pressure for repeated shouts through HF', () => {
-    const g = createGame(7);
-    travel(g, 92, 365);
-    const sevim = g.people[0]!;
-    // Arrival permits hearing. It does not instantly finish her bundle.
-    const initial = sevim.hf.will.voices.find((v) => v.voiceId === 'player')!.trust;
-    for (let i = 0; i < 12; i++) step(g, { type: 'speak', id: 'sevim', line: 'come' });
-    expect(sevim.booksReady).toBe(false);
-    expect(sevim.resolution?.verdict).not.toBe('assented');
-    expect(sevim.line).toContain('books');
-    expect(sevim.hf.will.voices.find((v) => v.voiceId === 'player')!.trust).toBeLessThan(initial);
-  });
-  it('lets Burak check a route and help Sevim without an order', () => {
-    const g = createGame(7);
-    advance(g, 700);
-    expect(g.routeFound).toBe(true);
-    expect(g.people[0]!.booksReady).toBe(true);
-    expect(g.events.some((e) => e.text.includes('Burak: The front stair'))).toBe(true);
-  });
-  it('supports all four walking to safety with care and a visible route', () => {
-    const g = rescueRun(7);
-    expect(g.phase).toBe('won');
-    expect(g.rescued).toHaveLength(4);
-    expect(g.people.every((p) => p.status === 'safe')).toBe(true);
-  });
-  it('ends a short unattended run with actual partial rescue and no deaths', () => {
-    const g = createGame(7);
+    step(g, { type: 'torch' });
+    for (const r of g.people) {
+      travel(g, r.x, r.homeY);
+      advance(g, 150);
+    }
+    travel(g, 180, 450);
     advance(g, 3300);
     expect(g.phase).toBe('lost');
-    expect(g.rescued.length).toBeGreaterThan(0);
-    expect(g.rescued.length).toBeLessThan(4);
-    expect(g.people.every((p) => p.hf.body.alive)).toBe(true);
-    expect(g.people.some((p) => p.status === 'hospital')).toBe(true);
-    expect(g.tick).toBe(g.deadline);
+    expect(g.people.some((r) => r.atHome && r.status === 'hospital')).toBe(true);
   });
-  it('replays the exported input log, HF state and final hash exactly', () => {
-    const g = rescueRun(19),
-      run = exportRun(g);
-    expect(stateHash(replayRun(run))).toBe(run.hash);
-    expect(run.state).toEqual(g);
-    const corrupted = structuredClone(run);
-    corrupted.inputs[0]!.input = { type: 'move', x: 180, y: 110 } satisfies Input;
-    expect(() => replayRun(corrupted)).toThrow('hash mismatch');
+  it('refuses the first Come while Sevim still needs the books', () => {
+    const g = createGame(1);
+    travel(g, 92, 365);
+    step(g, { type: 'speak', id: 'sevim', line: 'come' });
+    expect(g.people[0]!.status).toBe('waiting');
+    expect(g.people[0]!.line).toContain('books');
+    expect(g.people[0]!.resolution?.verdict).not.toBe('assented');
   });
-  it('rejects invalid movement coordinates and leaves a finished run unchanged', () => {
+  it('repeated insisted shouts can earn an HF distrust refusal within a run', () => {
+    const g = createGame(7);
+    travel(g, 92, 365);
+    const r = g.people[0]!;
+    const before = r.hf.will.voices.find((v) => v.voiceId === 'player')!.trust;
+    for (let i = 0; i < 40; i++) step(g, { type: 'speak', id: r.id, line: 'come' });
+    expect(r.resolution?.reason).toBe('distrust');
+    expect(r.hf.will.voices.find((v) => v.voiceId === 'player')!.trust).toBeLessThan(before);
+  });
+  it('lets HF voice trust change the same invitation in the same surroundings', () => {
+    const trusted = createGame(2),
+      distrusted = createGame(2);
+    for (const [g, trust] of [
+      [trusted, 1],
+      [distrusted, 0],
+    ] as const) {
+      travel(g, 268, 110);
+      seedVoice(g.people[3]!.hf, 'player', trust, { replace: true });
+      step(g, { type: 'speak', id: 'hacer', line: 'together' });
+    }
+    expect(trusted.people[3]!.resolution?.verdict).toBe('assented');
+    expect(distrusted.people[3]!.resolution?.verdict).not.toBe('assented');
+  });
+  it('varies who is home, asleep, holding back and where smoke starts', () => {
+    const games = Array.from({ length: 20 }, (_, i) => createGame(i + 1));
+    for (const key of ['atHome', 'asleep', 'holdingBack'] as const)
+      expect(new Set(games.map((g) => JSON.stringify(g.people.map((p) => p[key])))).size).toBeGreaterThan(1);
+    expect(new Set(games.map((g) => g.smokeOrigin)).size).toBeGreaterThan(1);
+  });
+  it('can collapse from smoke before the deadline', () => {
+    const g = createGame(7);
+    travel(g, 180, 110);
+    advance(g, 3000);
+    expect(g.phase).toBe('lost');
+    expect(g.breath).toBe(1);
+    expect(g.tick).toBeLessThan(g.deadline);
+  });
+  it('advances HF before any possible successful rescue and at minute boundaries', () => {
+    const g = createGame(7);
+    step(g);
+    expect(g.hfTicks).toBe(1);
+    expect(g.people.every((r) => r.hf.now === 370)).toBe(true);
+    advance(g, 1199);
+    expect(g.hfTicks).toBe(2);
+    expect(g.people.every((r) => r.hf.now === 371)).toBe(true);
+  });
+  it('leaves Sevim waiting beside the caretaker until speech starts an HF choice', () => {
+    const g = createGame(1);
+    step(g, { type: 'torch' });
+    travel(g, 92, 365);
+    advance(g, 150);
+    expect(g.people[0]!.booksReady).toBe(false);
+    expect(g.people[0]!.status).toBe('waiting');
+    step(g, { type: 'speak', id: 'sevim', line: 'books' });
+    advance(g, 90);
+    expect(g.people[0]!.booksReady).toBe(true);
+    expect(g.people[0]!.status).toBe('waiting');
+  });
+  it('lets the player cross faster during a thin wave', () => {
+    const thin = createGame(1),
+      thick = createGame(1);
+    step(thin, { type: 'torch' });
+    step(thick, { type: 'torch' });
+    advance(thick, 220);
+    const thinStart = thin.tick,
+      thickStart = thick.tick;
+    travel(thin, 180, 365);
+    travel(thick, 180, 365);
+    expect(thick.tick - thickStart).toBeGreaterThan(thin.tick - thinStart);
+    expect(thick.breath).toBeGreaterThan(thin.breath);
+  });
+  it('rejects nonfinite movement and ignores inputs after the run ends', () => {
     const g = createGame(3);
     step(g, { type: 'move', x: Number.NaN, y: 110 });
     expect(g.player.targetY).toBe(450);
@@ -85,5 +109,17 @@ describe('Smoke fixed-step host', () => {
     const hash = stateHash(g);
     step(g, { type: 'torch' });
     expect(stateHash(g)).toBe(hash);
+  });
+  it('replays inputs and complete HF state exactly and rejects corruption', () => {
+    const g = createGame(19);
+    step(g, { type: 'torch' });
+    travel(g, 92, 365);
+    step(g, { type: 'speak', id: 'sevim', line: 'books' });
+    advance(g, 200);
+    const run = exportRun(g);
+    expect(stateHash(replayRun(run))).toBe(run.hash);
+    const bad = structuredClone(run);
+    bad.inputs[0]!.input = { type: 'move', x: 180, y: 110 };
+    expect(() => replayRun(bad)).toThrow('hash mismatch');
   });
 });

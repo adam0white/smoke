@@ -1,13 +1,27 @@
 import 'pixi.js/unsafe-eval';
 import { claimLabNotice, createLab } from '@adam0white/lab-client';
 import { Application, Container, Graphics, Text } from 'pixi.js';
-import { createGame, exportRun, type Input, type RunExport, replayRun, stateHash, step } from './sim';
+import {
+  canSpeak,
+  createGame,
+  exportRun,
+  type Input,
+  type RunExport,
+  replayRun,
+  stateHash,
+  step,
+} from './sim';
 import './style.css';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
-app.innerHTML = `<header><div class="brand">Lale Apartmanı · a night in Istanbul<strong>Smoke on the Stairs</strong></div><button class="plain" id="menu" aria-label="Pause and open menu">≡</button></header><main class="stage"><aside class="stage-note"><b>06:10 · Istanbul</b>Four neighbours.<br>One familiar staircase.<br>You know the way.<br>They have to choose it.</aside><div class="scene" id="scene" role="img" aria-label="Apartment stairwell. Tap a landing to walk. Tap a neighbour to select them."></div><span class="stage-number">A NIGHT THAT COULD GO SEVERAL WAYS</span></main><section class="controls" aria-label="Neighbour and action controls"><p class="dialogue" id="line" aria-live="polite"></p><div class="people" id="people"></div><div class="actions"><button data-action="come">Come<small>E</small></button><button data-action="books">The books<small>B</small></button><button data-action="together">Together<small>T</small></button><button data-action="route">The route<small>R</small></button><button data-action="torch">Torch<small>F</small></button></div><p class="hint">Tap a landing to walk · tap a neighbour to speak · WASD / arrows to move</p><div class="sr-only" id="landings" aria-label="Walk to a landing"></div></section><div class="veil" id="overlay"></div>`;
+app.innerHTML = `<header><div class="brand">Lale Apartmanı · a night in Istanbul<strong>Smoke on the Stairs</strong></div><button class="plain" id="menu" aria-label="Pause and open menu">≡</button></header><main class="stage"><aside class="stage-note"><b>06:10 · Istanbul</b>Find who is home.<br>Show them the stair.<br>Ask them to leave.</aside><div class="scene" id="scene" role="img" aria-label="Apartment stairwell. Tap a landing to walk. Tap a neighbour to select them."></div></main><section class="controls" aria-label="Neighbour and action controls"><div class="event-feed" id="event-feed" role="log" aria-label="What everyone says and does" aria-live="polite" aria-relevant="additions"><ol id="events"></ol></div><p class="dialogue" id="line"></p><div class="people" id="people"></div><div class="actions"><button data-action="come">Come now<small>E</small></button><button data-action="books">The books<small>B</small></button><button data-action="together">Walk with me<small>T</small></button><button data-action="route">Show the stair<small>R</small></button><button data-action="torch">Torch<small>F</small></button></div><p class="hint">Tap a landing to walk · tap a neighbour to select and approach · WASD / arrows to move</p><div class="sr-only" id="landings" aria-label="Walk to a landing"></div></section><div class="veil" id="overlay"></div>`;
 const lab = createLab({ game: 'smoke' });
-let game = createGame(crypto.getRandomValues(new Uint32Array(1))[0]!);
+const requestedSeed = new URLSearchParams(location.search).get('seed');
+let game = createGame(
+  new URLSearchParams(location.search).has('lab') && requestedSeed !== null
+    ? Number(requestedSeed)
+    : crypto.getRandomValues(new Uint32Array(1))[0]!,
+);
 let previous = game.people.map((p) => ({ x: p.x, y: p.y }));
 let previousPlayer = { ...game.player };
 let selected = game.people[0]!.id;
@@ -26,6 +40,9 @@ const frameSamples: number[] = [];
 let frameStart = 0;
 const overlay = document.querySelector<HTMLDivElement>('#overlay')!;
 const line = document.querySelector<HTMLParagraphElement>('#line')!;
+const eventList = document.querySelector<HTMLOListElement>('#events')!;
+const eventFeed = document.querySelector<HTMLDivElement>('#event-feed')!;
+let eventCursor = 0;
 const people = document.querySelector<HTMLDivElement>('#people')!;
 const menuButton = document.querySelector<HTMLButtonElement>('#menu')!;
 const landings = [450, 365, 280, 195, 110];
@@ -109,7 +126,13 @@ const figures = game.people.map((p, i) => {
   c.addChild(g);
   const name = new Text({
     text: p.name,
-    style: { fontFamily: 'DM Sans, sans-serif', fontSize: 9, fontWeight: '600', fill: ink },
+    style: {
+      fontFamily: 'DM Sans, sans-serif',
+      fontSize: 16,
+      fontWeight: '700',
+      fill: ink,
+      stroke: { color: paper, width: 4 },
+    },
   });
   name.anchor.set(0.5, 0);
   name.position.set(0, 4);
@@ -138,31 +161,56 @@ function setPaused(value: boolean) {
   pending.length = 0;
   accumulator = 0;
   lastFrame = 0;
+  updateDOM();
 }
 function enqueue(input: Input) {
   if (started && !paused && game.phase === 'playing' && !replaying) pending.push(input);
 }
 function speak(action: string) {
   if (action === 'torch') enqueue({ type: 'torch' });
-  else enqueue({ type: 'speak', id: selected, line: action as 'come' });
+  else if (canSpeak(game, selected, action as 'come'))
+    enqueue({ type: 'speak', id: selected, line: action as 'come' });
 }
 function select(id: string) {
-  selected = id;
   const p = game.people.find((p) => p.id === id);
+  if (!p?.atHome) return;
+  selected = id;
   if (p && p.status !== 'safe' && p.status !== 'hospital') enqueue({ type: 'move', x: p.x, y: p.y });
   updateDOM();
 }
 function updateDOM() {
   const p = game.people.find((p) => p.id === selected)!;
-  const message =
-    game.notice.startsWith(`${p.name}:`) || game.notice.startsWith(`Walk closer to ${p.name}`)
-      ? game.notice
-      : `${p.name}: ${p.line}`;
+  const message = p.atHome ? `${p.name}: ${p.line}` : `${p.name} is away tonight.`;
   if (line.textContent !== message) line.textContent = message;
+  const followingLatest = eventFeed.scrollHeight - eventFeed.scrollTop - eventFeed.clientHeight < 30;
+  while (eventCursor < game.events.length) {
+    const entry = game.events[eventCursor++]!;
+    const li = document.createElement('li');
+    li.textContent = entry.text;
+    li.dataset.tick = String(entry.tick);
+    eventList.append(li);
+  }
+  if (followingLatest) eventFeed.scrollTop = eventFeed.scrollHeight;
   for (const button of people.querySelectorAll('button')) {
+    const resident = game.people.find((person) => person.id === button.dataset.id)!;
     button.classList.toggle('active', button.dataset.id === selected);
     button.setAttribute('aria-pressed', String(button.dataset.id === selected));
+    button.textContent = `${game.people.indexOf(resident) + 1} ${resident.name}${!resident.atHome ? ' · away' : resident.status === 'safe' ? ' · out' : resident.asleep ? ' · asleep' : ''}`;
+    button.disabled = !resident.atHome;
   }
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-action]')) {
+    const action = button.dataset.action!;
+    button.disabled =
+      !started ||
+      paused ||
+      replaying ||
+      game.phase !== 'playing' ||
+      (action !== 'torch' && !canSpeak(game, selected, action as 'come'));
+    button.title = button.disabled && action !== 'torch' ? 'Approach a neighbour who needs this action.' : '';
+  }
+  const routeButton = document.querySelector<HTMLButtonElement>('[data-action="route"]')!;
+  routeButton.firstChild!.textContent =
+    p.id === 'burak' && !game.routeFound ? 'Check the stair' : 'Show the stair';
   const tb = document.querySelector<HTMLButtonElement>('[data-action="torch"]')!;
   tb.setAttribute('aria-pressed', String(game.torch));
 }
@@ -218,8 +266,23 @@ function feedback(note: string) {
 }
 function showMenu() {
   showSheet(
-    `<div class="eyebrow">The night is paused</div><h2 id="sheet-title">A moment on the landing.</h2><button class="primary" id="resume">Keep going</button><button class="secondary" id="stopping">I'm stopping</button><button class="secondary" id="confused">I'm confused</button><button class="secondary" id="export">Download this run</button><label><input id="recording" type="checkbox" ${lab.telemetryOn ? 'checked' : ''}>Record this play for the game lab</label><p class="minor">Recorded play is linked to other lab play on this device and kept for 180 days. <a href="https://human.adamwhite.work/lab/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a></p><p class="minor">Feedback opens a draft for you to review. Nothing is sent until you submit.</p>`,
+    `<div class="eyebrow">The night is paused</div><h2 id="sheet-title">Paused.</h2><button class="primary" id="resume">Keep going</button><button class="secondary" id="new-game">New game</button><div id="new-confirm" hidden><p>Start a new night? This ends the current night.</p><button class="secondary" id="confirm-new">Start new night</button><button class="secondary" id="cancel-new">Keep this night</button></div><button class="secondary" id="fullscreen">Full screen</button><a class="secondary" href="https://human.adamwhite.work/games/">All games</a><button class="secondary" id="stopping">I'm stopping</button><button class="secondary" id="confused">I'm confused</button><button class="secondary" id="export">Download this run</button><label><input id="recording" type="checkbox" ${lab.telemetryOn ? 'checked' : ''}>Record this play for the game lab</label><p class="minor">Recorded play is linked to other lab play on this device and kept for 180 days. <a href="https://human.adamwhite.work/lab/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a></p><p class="minor">Feedback opens a draft for you to review. Nothing is sent until you submit.</p>`,
   );
+  document.querySelector('#new-game')!.addEventListener('click', () => {
+    document.querySelector<HTMLElement>('#new-confirm')!.hidden = false;
+    document.querySelector<HTMLButtonElement>('#confirm-new')!.focus();
+  });
+  document.querySelector('#confirm-new')!.addEventListener('click', () => restart(true));
+  document.querySelector('#cancel-new')!.addEventListener('click', () => {
+    document.querySelector<HTMLElement>('#new-confirm')!.hidden = true;
+    document.querySelector<HTMLButtonElement>('#new-game')!.focus();
+  });
+  const fullScreen = document.querySelector<HTMLButtonElement>('#fullscreen')!;
+  fullScreen.disabled = !document.fullscreenEnabled;
+  fullScreen.addEventListener('click', () => {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void document.documentElement.requestFullscreen();
+  });
   document.querySelector('#resume')!.addEventListener('click', hideSheet);
   document.querySelector('#stopping')!.addEventListener('click', () => feedback("I'm stopping"));
   document.querySelector('#confused')!.addEventListener('click', () => feedback("I'm confused"));
@@ -228,9 +291,10 @@ function showMenu() {
     lab.setTelemetryOff(!(e.target as HTMLInputElement).checked);
 }
 menuButton.onclick = showMenu;
-function restart() {
+function restart(newSeed = false) {
   attempt++;
-  game = createGame(game.seed);
+  game = createGame(newSeed ? crypto.getRandomValues(new Uint32Array(1))[0]! : game.seed);
+  resetEvents();
   previous = game.people.map((p) => ({ x: p.x, y: p.y }));
   previousPlayer = { ...game.player };
   pending.length = 0;
@@ -240,23 +304,29 @@ function restart() {
   hideSheet();
   lab.screen('stairwell');
 }
+function resetEvents() {
+  eventCursor = 0;
+  eventList.replaceChildren();
+  selected = game.people.find((p) => p.atHome)?.id ?? game.people[0]!.id;
+}
 function showEnd() {
   ended = true;
   lab.screen('outcome');
   const saved = game.rescued.map((id) => game.people.find((p) => p.id === id)!);
   showSheet(
-    `<div class="eyebrow">${replaying ? 'Replay · ' : ''}The street, after the fire</div><h1 id="sheet-title">${saved.length === game.people.length ? 'Everyone is out.' : `${saved.length} made it out with you.`}</h1>${saved.length ? `<ol>${saved.map((p) => `<li>${p.name} — ${p.action === 'follow' ? 'walked with you' : p.action === 'help' ? 'helped a neighbour' : 'found the way down'}<br><span class="minor">“${p.line}”</span></li>`).join('')}</ol>` : '<p>You reached the end of this night without a rescue.</p>'}<p>${game.people
-      .filter((p) => !game.rescued.includes(p.id))
+    `<div class="eyebrow">${replaying ? 'Replay · ' : ''}The street, after the fire</div><h1 id="sheet-title">${saved.length === game.people.filter((p) => p.atHome).length ? 'Everyone is out.' : `${saved.length} made it out with you.`}</h1>${saved.length ? `<ol>${saved.map((p) => `<li>${p.name} — ${p.action === 'follow' ? 'walked with you' : p.action === 'help' ? 'helped a neighbour' : 'found the way down'}<br><span class="minor">${p.line}</span></li>`).join('')}</ol>` : '<p>You reached the end of this night without a rescue.</p>'}<p>${game.people
+      .filter((p) => p.atHome && !game.rescued.includes(p.id))
       .map((p) => p.name)
       .join(
         ', ',
-      )}${saved.length < game.people.length ? ' left with the firefighters and went to hospital. Nobody died.' : ''}</p><p class="minor">This night changes no other game. Try another order and see what they choose.</p><button class="primary" id="again">Try this night again</button>${replaying ? '' : '<button class="secondary" id="replay">Watch this run</button>'}<button class="secondary" id="end-export">Download this run</button><button class="secondary" id="end-feedback">Tell us about this night</button>`,
+      )}${saved.length < game.people.filter((p) => p.atHome).length ? ' left with the firefighters and went to hospital. Nobody died.' : ''}</p><p class="minor">This night changes no other game. Try another order and see what they choose.</p><button class="primary" id="again">Try this night again</button>${replaying ? '' : '<button class="secondary" id="replay">Watch this run</button>'}<button class="secondary" id="end-export">Download this run</button><button class="secondary" id="end-feedback">Tell us about this night</button>`,
   );
-  document.querySelector('#again')!.addEventListener('click', restart);
+  document.querySelector('#again')!.addEventListener('click', () => restart());
   document.querySelector('#replay')?.addEventListener('click', () => {
     replay = exportRun(game);
     attempt++;
     game = createGame(replay.seed);
+    resetEvents();
     previous = game.people.map((p) => ({ x: p.x, y: p.y }));
     previousPlayer = { ...game.player };
     pending.length = 0;
@@ -350,7 +420,7 @@ function draw(alpha: number, time: number) {
         y = landings[f]! - 19 - Math.cos(time * 0.0004 + j) * 7;
       smoke
         .ellipse(x, y, 39, 15 + (j % 3) * 4)
-        .fill({ color: 0x556052, alpha: Math.min(0.65, density * 0.22) });
+        .fill({ color: 0x556052, alpha: Math.min(0.7, density * 0.65) });
     }
   }
   torch.clear();
@@ -363,26 +433,41 @@ function draw(alpha: number, time: number) {
   game.people.forEach((p, i) => {
     const f = figures[i]!,
       old = previous[i] || p;
-    f.c.visible = p.status !== 'safe' && p.status !== 'hospital';
+    f.c.visible = p.atHome && p.status !== 'safe' && p.status !== 'hospital';
     f.c.position.set(old.x + (p.x - old.x) * alpha, old.y + (p.y - old.y) * alpha);
     f.ring.clear();
     if (p.id === selected) f.ring.ellipse(0, 0, 15, 4).stroke({ color: coral, width: 1.5 });
     f.c.rotation =
       p.status === 'following' || p.status === 'escaping' ? Math.sin(time * 0.01 + i) * 0.035 : 0;
   });
+  // Stack labels only when their screen rectangles would overlap.
+  const placed: { x: number; y: number; width: number }[] = [];
+  for (const figure of figures) {
+    if (!figure.c.visible) continue;
+    const width = figure.name.width;
+    const x = Math.max(width / 2 + 4, Math.min(356 - width / 2, figure.c.x));
+    let y = figure.c.y + 5;
+    while (
+      placed.some(
+        (other) => Math.abs(other.x - x) < (other.width + width) / 2 + 4 && Math.abs(other.y - y) < 17,
+      )
+    )
+      y += 18;
+    figure.name.position.set(x - figure.c.x, y - figure.c.y);
+    placed.push({ x, y, width });
+  }
   breathEdge.clear();
   if (game.breath > 0.25)
     breathEdge
       .rect(0, 0, 360, 500)
       .stroke({ width: 15 + game.breath * 20, color: 0x6c4536, alpha: game.breath * 0.3 });
-  const highest = game.smoke.reduce((a, b) => Math.max(a, b), 0);
-  status.text = game.routeFound
-    ? 'BURAK FOUND A CLEARER WAY'
-    : highest > 0.7
-      ? 'THE SMOKE IS STAYING LONGER'
-      : highest > 0.3
-        ? 'WAIT FOR THE SMOKE TO THIN'
-        : 'TAP A LANDING TO WALK';
+  const waveSeconds = Math.ceil(game.nextWaveTicks / 20);
+  status.text =
+    game.breath > 0.65
+      ? 'BREATH RUNNING LOW\nGO DOWN TO THE STREET'
+      : game.wave === 'thick'
+        ? `THICK SMOKE · WAIT ON A LANDING\nTHINS IN ${waveSeconds} SECONDS`
+        : `SMOKE THINS · MOVE DOWN THE STAIR\nTHICKENS IN ${waveSeconds} SECONDS`;
 }
 if (labMode)
   pixi.ticker.add(
@@ -418,6 +503,7 @@ if (labMode)
 lab.trackRun(() => ({ ...exportRun(game), playback: replaying }), {
   runKey: () => `${attempt}:${replaying ? 'playback' : 'play'}`,
 });
+resetEvents();
 let showNotice = await claimLabNotice();
 try {
   const key = 'smoke-notice-v1';
@@ -428,7 +514,7 @@ try {
 }
 
 showSheet(
-  `<div class="eyebrow">Lale Apartmanı · Istanbul</div><h1 id="sheet-title">Smoke on<br>the Stairs.</h1><p class="intro">You know every door.<br>That does not mean they will follow.</p><p>Get Burak, Sevim, Derya and Hacer to the street. Walk close, choose a neighbour, then speak. Listen when they refuse. Burak may know a better way.</p><p>Tap a neighbour to walk to them, then choose what to say. Stay beside someone who needs a moment. Tap a landing to walk away. Use WASD / arrows, 1–4 to choose, and E for “Come”.</p><button class="primary" id="start">Enter the stairwell →</button>${showNotice ? '<p class="minor">The game lab records play, links it to other lab play on this device, and keeps it for 180 days. Turn recording off in the pause menu. Feedback is yours to review before sending. <a href="https://human.adamwhite.work/lab/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a></p>' : ''}<p class="minor">Nobody dies. This night changes no other game.</p>`,
+  `<div class="eyebrow">Lale Apartmanı · Istanbul</div><h1 id="sheet-title">Smoke on<br>the Stairs.</h1><p class="intro">Smoke is filling the stair.<br>Get everyone who is home to the street.</p><p>Tap a neighbour to approach. Show the stair with your torch. Choose what to say, and listen to their answer.</p><p class="minor">Tap a landing to walk. Keyboard: arrows / WASD to move, 1–4 to select. Speech keys appear on the buttons.</p><button class="primary" id="start">Enter the stairwell →</button>${showNotice ? '<p class="minor">The game lab records play, links it to other lab play on this device, and keeps it for 180 days. Turn recording off in the pause menu. Feedback is yours to review before sending. <a href="https://human.adamwhite.work/lab/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a></p>' : ''}<p class="minor">Nobody dies. This night changes no other game.</p>`,
 );
 document.querySelector('#start')!.addEventListener('click', () => {
   started = true;

@@ -15,56 +15,76 @@ declare global {
   }
 }
 
-test('a readable refusal, moving companion, pause, and replay export', async ({ page }) => {
+test('speech is contextual, all events persist, and pause has navigation', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  const response = await page.goto('/?lab=1');
+  const response = await page.goto('/?lab=1&seed=1');
   expect(response?.headers()['content-security-policy']).toContain("script-src 'self'");
   await page.getByRole('button', { name: 'Enter the stairwell' }).click();
   await expect(page.locator('canvas')).toBeVisible();
-  await page.getByRole('button', { name: '1 Sevim', exact: true }).click();
-  await page.evaluate(() => window.smoke.advance(90));
-  await page.getByRole('button', { name: 'Come', exact: false }).click();
+  // No neighbour is within speaking distance at the street.
+  for (const action of ['come', 'books', 'together', 'route']) {
+    await expect(page.locator(`[data-action="${action}"]`)).toBeDisabled();
+  }
+  const before = await page.evaluate(() => window.smoke.exportRun().inputs.length);
+  await page.keyboard.press('e');
+  await page.keyboard.press('b');
+  await page.keyboard.press('t');
+  await page.keyboard.press('r');
+  await page.evaluate(() => window.smoke.advance(1));
+  expect(await page.evaluate(() => window.smoke.exportRun().inputs.length)).toBe(before);
+  const resident = await page.evaluate(() => window.smoke.getState().people.find((p) => p.atHome)!);
+  await page.locator(`[data-id="${resident.id}"]`).click();
+  await page.evaluate(() => window.smoke.advance(110));
+  await expect(page.locator('[data-action="come"]')).toBeEnabled();
+  await expect(page.locator('[data-action="together"]')).toBeEnabled();
+  if (resident.id !== 'sevim') await expect(page.locator('[data-action="books"]')).toBeDisabled();
+  await page.locator('[data-action="come"]').click();
   await page.evaluate(() => window.smoke.advance(1));
   await expect(page.locator('#line')).toContainText(/books|pushing|bundle/);
-  const refusal = await page.evaluate(() => window.smoke.getState().people[0]?.resolution?.verdict);
-  expect(refusal).not.toBe('assented');
-  await page.evaluate(() => window.smoke.advance(650));
-  expect(await page.evaluate(() => window.smoke.getState().routeFound)).toBe(true);
   expect(
-    await page.evaluate(() =>
-      window.smoke
-        .getState()
-        .people.some((p) => p.status === 'safe' || p.status === 'following' || p.status === 'escaping'),
+    await page.evaluate(
+      () => window.smoke.getState().people.find((p) => p.id === 'sevim')!.resolution?.verdict,
     ),
-  ).toBe(true);
-  const bounds = await page.locator('canvas').boundingBox();
-  const controls = await page.locator('.actions').boundingBox();
-  expect(bounds).not.toBeNull();
-  expect(controls).not.toBeNull();
-  expect(bounds!.y + bounds!.height).toBeLessThan(controls!.y);
-  const overflow = await page.evaluate(() => ({
-    width: innerWidth,
-    scroll: document.documentElement.scrollWidth,
-    elements: [...document.querySelectorAll('*')]
-      .filter((e) => e.getBoundingClientRect().right > innerWidth)
-      .map((e) => ({
-        tag: e.tagName,
-        cls: e.className,
-        right: e.getBoundingClientRect().right,
-        width: e.getBoundingClientRect().width,
-      }))
-      .slice(0, 12),
-  }));
-  expect(overflow.scroll, JSON.stringify(overflow)).toBeLessThanOrEqual(overflow.width);
+  ).not.toBe('assented');
+  // Same-tick reports from different people must all render, regardless of selection.
+  await page.evaluate(() => {
+    const state = window.smoke.getState();
+    state.events.push(
+      { tick: state.tick, text: 'Burak: The stair is clear.' },
+      { tick: state.tick, text: 'Derya reached the street.' },
+      { tick: state.tick, text: 'Hacer: I can see the stair.' },
+    );
+    window.smoke.advance(1);
+  });
+  const feed = page.getByRole('log');
+  await expect(feed).toContainText('Burak: The stair is clear.');
+  await expect(feed).toContainText('Derya reached the street.');
+  await expect(feed).toContainText('Hacer: I can see the stair.');
+  const count = await feed.locator('li').count();
+  await page.evaluate(() => window.smoke.advance(2));
+  expect(await feed.locator('li').count()).toBeGreaterThanOrEqual(count);
+  const canvas = await page.locator('canvas').boundingBox();
+  const controls = await page.locator('.controls').boundingBox();
+  expect(canvas!.y + canvas!.height).toBeLessThanOrEqual(controls!.y + 1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+    page.viewportSize()!.width,
+  );
   await page.getByRole('button', { name: 'Pause and open menu' }).click();
   const tick = await page.evaluate(() => window.smoke.getState().tick);
   await page.waitForTimeout(250);
   expect(await page.evaluate(() => window.smoke.getState().tick)).toBe(tick);
-  await expect(page.getByRole('button', { name: "I'm stopping", exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: "I'm confused", exact: true })).toBeVisible();
-  await page.getByRole('button', { name: "I'm confused", exact: true }).click();
-  await expect(page.getByRole('dialog').last()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Full screen', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'All games', exact: true })).toHaveAttribute(
+    'href',
+    'https://human.adamwhite.work/games/',
+  );
+  await page.getByRole('button', { name: 'New game', exact: true }).click();
+  await expect(page.getByText('Start a new night? This ends the current night.')).toBeVisible();
+  expect(await page.evaluate(() => window.smoke.getState().tick)).toBe(tick);
+  await page.getByRole('button', { name: 'Start new night', exact: true }).click();
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(feed).not.toContainText('Derya reached the street.');
   expect(errors).toEqual([]);
 });
 
