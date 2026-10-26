@@ -158,9 +158,8 @@ test('screen teaches an escort and exposes smoke timing in words', async ({ page
   await page.getByRole('button', { name: 'Street', exact: true }).click();
   await page.evaluate(() => window.smoke.advance(300));
   await expect(page.locator('[data-id="sevim"]')).toContainText('Outside');
-  expect(await page.evaluate(() => window.smoke.replayCheck())).toBe(
-    await page.evaluate(() => window.smoke.exportRun().hash),
-  );
+  const hashes = await page.evaluate(() => [window.smoke.replayCheck(), window.smoke.exportRun().hash]);
+  expect(hashes[0]).toBe(hashes[1]);
 });
 
 test('cold policy wins using rendered text and enabled controls only', async ({ page }) => {
