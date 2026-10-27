@@ -6,6 +6,7 @@ function movementStatus(g: Game, r: Resident): string {
   if (r.status === 'safe') return 'Outside';
   if (r.status === 'hospital') return 'At hospital with smoke injuries';
   if (r.status === 'dead') return 'Died from smoke';
+  if (r.status === 'following' && r.hf.activity?.protest) return 'Following under protest · walking slowly';
   if (r.status === 'following')
     return Math.abs(r.x - g.player.x) + Math.abs(r.y - g.player.y) <= 24 && g.player.y < 435
       ? 'Following · waiting beside you. Lead me to the street.'
@@ -14,6 +15,7 @@ function movementStatus(g: Game, r: Resident): string {
   if (r.action === 'route') return 'Checking the stair';
   if (r.action === 'help') return 'Helping with the books';
   if (r.action === 'books') return 'Stopped · tying the books';
+  if (r.action === 'lost') return 'Stopped · lost in the smoke. Speak to me again.';
   if (r.action === 'rest') return 'Stopped · catching my breath';
   if (r.asleep) return 'Stopped · was asleep. Approach and speak.';
   if (!r.booksReady) return 'Stopped · needs help with the books';

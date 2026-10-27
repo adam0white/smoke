@@ -30,3 +30,22 @@ SMOKE_MEASUREMENT_PATH=docs/smoke-measurements.json pnpm test src/sim.test.ts sr
 `cold-policy.ts` receives only the `readScreen` projection rendered in main.ts: names, status words, guidance words, selected name, enabled speech controls, torch state and smoke-clock text. It has no Game, seed, coordinates, HF state, route knowledge or task countdown access. Every simulated second it chooses a name, an available speech control, or the visible Street button. Name and Street commands use the same input translation as the UI. It follows explicit instructions, waits for books, and leads each agreed follower outside before choosing another stopped person.
 
 The fixed seeds 1–20 retain all three earlier strategies and add cold policy. Cold policy wins 20/20 in 857–1556 ticks (42.85–77.8 seconds). All 80 exports replay to the full-state hash. The browser suite separately constructs this policy's observation from rendered DOM text and enabled buttons; only time advancement uses the lab API. These are automated controls, not evidence from a first-time human.
+
+## Iteration 5: pushing people into the dark (2026-10-27)
+
+The repository's "careless" bot (torch on, climb to the top, stay) never matched what a careless human does. A live pass found the real careless play: no torch, press Come now until each neighbour follows, then Street. That won 4 of 4 live nights in 36–69 seconds. A fifth headless strategy, **pushy**, reproduces it from `canSpeak` and positions, one command per quarter second.
+
+Two costs now come from the fiction and from HF:
+
+- **Lost in the dark.** In a thick wave, a follower who has never seen the stair, with the torch off, loses the caretaker and stops where they stand: "I cannot see you or the stair in this smoke." They stay stopped until spoken to again or shown the stair, and they will not move off in that wave: "Not in this smoke. Ask me again when it thins." Each push still reaches HF, so insisting keeps spending trust until HF refuses ("You keep pushing…").
+- **Following under protest.** When HF marks a follow as compliance under protest (`Activity.protest`, after an insisted Come), the follower walks at 1.0 instead of 1.7 and also stops in a thick wave: "I have stopped. You pushed me into thick smoke." The name reads "Following under protest · walking slowly".
+
+| Strategy  | Before (wins / deaths) | After (wins / deaths) |
+| --------- | ---------------------- | --------------------- |
+| Silent    | 0/20 / 56              | 0/20 / 56             |
+| Careless  | 0/20 / 54              | 0/20 / 54             |
+| Competent | 20/20 / 0              | 20/20 / 0             |
+| Cold      | 20/20 / 0              | 20/20 / 0             |
+| Pushy     | 20/20 / 0              | 6/20 / 15             |
+
+Exports move to replay format smoke-4. Pushy losses all reach the deadline with one or two people dead. Not covered: pushing with the torch on but never showing the stair still wins 18/20 (2 deaths) in a one-off measurement. Followers can see by the torch, so only the protest cost applies. Browser runs on the local build: careless 360 won (Sevim left without her books after two stops), careless 1280 lost (Derya died after HF distrust), careful 360 and 1280 won.

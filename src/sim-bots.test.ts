@@ -2,7 +2,7 @@ import { writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { coldPolicy } from './cold-policy';
 import { readScreen } from './screen';
-import { createGame, exportRun, type Game, replayRun, stateHash, step } from './sim';
+import { canSpeak, createGame, exportRun, type Game, replayRun, stateHash, step } from './sim';
 
 function advance(g: Game, n: number) {
   for (let i = 0; i < n; i++) step(g);
@@ -11,8 +11,28 @@ function travel(g: Game, x: number, y: number) {
   step(g, { type: 'move', x, y });
   for (let i = 0; i < 1000 && g.phase === 'playing' && (g.player.x !== x || g.player.y !== y); i++) step(g);
 }
-function bot(seed: number, strategy: 'silent' | 'careless' | 'competent' | 'cold') {
+type Strategy = 'silent' | 'careless' | 'competent' | 'cold' | 'pushy';
+function bot(seed: number, strategy: Strategy) {
   const g = createGame(seed);
+  if (strategy === 'pushy') {
+    // The live careless player: no torch, press Come now until someone follows, then Street.
+    // One command per quarter second, the same cadence as the live driver.
+    let stage = 0;
+    while (g.phase === 'playing') {
+      const following = g.people.some((r) => r.status === 'following');
+      const stopped = g.people.filter((r) => r.atHome && r.status === 'waiting' && r.action !== 'books');
+      const r = stopped[stage % Math.max(1, stopped.length)];
+      if (following || !r) {
+        if (g.player.targetY !== 450) step(g, { type: 'move', x: 180, y: 450 });
+      } else if (canSpeak(g, r.id, 'come')) {
+        step(g, { type: 'speak', id: r.id, line: 'come' });
+        stage++;
+      } else if (g.player.targetX !== r.x || g.player.targetY !== r.homeY)
+        step(g, { type: 'move', x: r.x, y: r.y });
+      advance(g, 5);
+    }
+    return g;
+  }
   if (strategy === 'cold') {
     let selected = g.people[0]!.id;
     while (g.phase === 'playing') {
@@ -63,7 +83,7 @@ function bot(seed: number, strategy: 'silent' | 'careless' | 'competent' | 'cold
 describe('twenty seeded nights', () => {
   it('measures silent, careless and informed strategies with exact replay', () => {
     const measurements = Array.from({ length: 20 }, (_, i) => i + 1).flatMap((seed) =>
-      (['silent', 'careless', 'competent', 'cold'] as const).map((strategy) => {
+      (['silent', 'careless', 'competent', 'cold', 'pushy'] as const).map((strategy) => {
         const g = bot(seed, strategy);
         const run = exportRun(g);
         expect(stateHash(replayRun(run))).toBe(run.hash);
@@ -88,11 +108,11 @@ describe('twenty seeded nights', () => {
     if (process.env.SMOKE_MEASUREMENT_PATH)
       writeFileSync(
         process.env.SMOKE_MEASUREMENT_PATH,
-        `${JSON.stringify({ engine: '3.2.0', replayFormat: 'smoke-3', measurements }, null, 2)}\n`,
+        `${JSON.stringify({ engine: '3.2.0', replayFormat: 'smoke-4', measurements }, null, 2)}\n`,
       );
     console.log(
       JSON.stringify({
-        strategies: ['silent', 'careless', 'competent', 'cold'].map((strategy) => ({
+        strategies: ['silent', 'careless', 'competent', 'cold', 'pushy'].map((strategy) => ({
           strategy,
           wins: measurements.filter((m) => m.strategy === strategy && m.phase === 'won').length,
           deaths: measurements.filter((m) => m.strategy === strategy).reduce((n, m) => n + m.dead, 0),
@@ -119,5 +139,9 @@ describe('twenty seeded nights', () => {
     expect(
       measurements.filter((m) => m.strategy === 'competent' && m.phase === 'won').length,
     ).toBeGreaterThanOrEqual(16);
-  });
+    // Pushing people into the dark loses most nights.
+    expect(
+      measurements.filter((m) => m.strategy === 'pushy' && m.phase === 'won').length,
+    ).toBeLessThanOrEqual(10);
+  }, 30000);
 });

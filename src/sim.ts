@@ -71,7 +71,7 @@ export interface Game {
   lastDecisionTick: number;
 }
 export interface RunExport {
-  format: 'smoke-3';
+  format: 'smoke-4';
   engine: '3.2.0';
   seed: number;
   ticks: number;
@@ -214,11 +214,20 @@ export function createGame(seed: number): Game {
   };
 }
 
+/** A follower stops in a thick wave: no light and no seen stair, or following under HF protest. */
+function stopsInSmoke(g: Game, r: Resident): boolean {
+  const floor = Math.max(0, Math.min(4, Math.round((450 - r.y) / 85)));
+  return (
+    r.y < 435 && g.smoke[floor]! > 0.65 && (Boolean(r.hf.activity?.protest) || (!g.torch && !r.routeKnown))
+  );
+}
 const distance = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 const near = (g: Game, r: Resident) => distance(g.player, r) < 85;
 const rounded = (n: number) => Math.round(n * 1000) / 1000;
 function event(g: Game, text: string) {
+  // A person repeating the same sentence to repeated pushing is shown once, not as a loop.
+  if (g.events.at(-1)?.text === text) return;
   g.events.push({ tick: g.tick, text });
   g.notice = text;
 }
@@ -309,6 +318,7 @@ function choose(
   g: Game,
   r: Resident,
   suggestion?: { voiceId: string; affordanceId: string; strength: number; insist?: boolean },
+  quiet = false,
 ) {
   if (g.lastDecisionTick === g.tick) return;
   g.lastDecisionTick = g.tick;
@@ -320,7 +330,7 @@ function choose(
     r.resolution = answer.resolution;
     if (answer.booked) {
       r.line = refusal(r);
-      event(g, `${r.name}: ${r.line}`);
+      if (!quiet) event(g, `${r.name}: ${r.line}`);
       return;
     }
   }
@@ -343,7 +353,8 @@ function choose(
   if (suggestion && ['refused', 'deferred', 'modified'].includes(record.suggestion?.verdict ?? ''))
     r.line = refusal(r);
   if (record.suggestion?.verdict === 'complied') r.line = 'I will come, but stop pushing me.';
-  if (suggestion || r.line !== previousLine || r.action !== previousAction) event(g, `${r.name}: ${r.line}`);
+  if (!quiet && (suggestion || r.line !== previousLine || r.action !== previousAction))
+    event(g, `${r.name}: ${r.line}`);
 }
 
 function refusal(r: Resident): string {
@@ -393,19 +404,42 @@ function speak(g: Game, input: Extract<Input, { type: 'speak' }>) {
         claims: [{ prop: 'stair-visible', value: true, confidence: 1 }],
       },
     ]);
+    if (r.action === 'lost') r.action = 'wait';
     r.line = 'I can see the stair in your torchlight. Walk with me.';
     event(g, `${r.name}: ${r.line}`);
     return;
   }
   const id = input.line === 'books' ? 'books' : input.line === 'route' ? 'route' : 'follow';
-  choose(g, r, {
-    voiceId: 'player',
-    affordanceId: id,
-    strength: input.line === 'come' ? 0.9 : 0.65,
-    insist:
-      input.line === 'come' &&
-      r.hf.will.voices.some((v) => v.voiceId === 'player' && v.accepted + v.refused > 0),
-  });
+  const wasLost = r.action === 'lost',
+    before = r.line;
+  choose(
+    g,
+    r,
+    {
+      voiceId: 'player',
+      affordanceId: id,
+      strength: input.line === 'come' ? 0.9 : 0.65,
+      insist:
+        input.line === 'come' &&
+        r.hf.will.voices.some((v) => v.voiceId === 'player' && v.accepted + v.refused > 0),
+    },
+    wasLost,
+  );
+  if (!wasLost) return;
+  // HF has heard the push (trust is spent), but someone stopped in a thick wave will not set off
+  // again until it thins. They say so once instead of repeating.
+  let line = r.line;
+  if (r.status === 'following' && stopsInSmoke(g, r)) {
+    r.status = 'waiting';
+    r.action = 'lost';
+    line = 'Not in this smoke. Ask me again when it thins.';
+    if (line === before) {
+      r.line = line;
+      return;
+    }
+  }
+  r.line = line;
+  event(g, `${r.name}: ${r.line}`);
 }
 
 export function step(g: Game, input?: Input): void {
@@ -527,7 +561,22 @@ export function step(g: Game, input?: Input): void {
         }
       }
     } else if (r.status === 'following') {
-      if (distance(r, g.player) > 24 || g.player.y >= 435) approach(r, g.player.x, g.player.y, 1.7);
+      // In a thick wave two followers stop where they stand until spoken to again: someone who has
+      // never seen the stair and has no light, and anyone HF marks as following under protest.
+      // Showing the stair clears the stop; nothing else restarts them.
+      const lost = !g.torch && !r.routeKnown;
+      if (stopsInSmoke(g, r)) {
+        r.status = 'waiting';
+        r.action = 'lost';
+        r.line = lost
+          ? 'I cannot see you or the stair in this smoke.'
+          : 'I have stopped. You pushed me into thick smoke.';
+        event(g, `${r.name}: ${r.line}`);
+        continue;
+      }
+      // HF marks compliance under protest; a pushed follower walks slowly.
+      if (distance(r, g.player) > 24 || g.player.y >= 435)
+        approach(r, g.player.x, g.player.y, r.hf.activity?.protest ? 1 : 1.7);
     } else if (r.status === 'escaping') approach(r, 180, 450, 1.7);
     if ((r.status === 'following' || r.status === 'escaping') && r.y >= 435) {
       r.exitMethod = r.status === 'following' ? 'escorted' : 'alone';
@@ -563,7 +612,7 @@ export function step(g: Game, input?: Input): void {
   const slot = g.tick % 40;
   if (slot < g.people.length) {
     const r = g.people[slot]!;
-    if (r.status === 'waiting' && !r.asleep && r.action !== 'books') choose(g, r);
+    if (r.status === 'waiting' && !r.asleep && r.action !== 'books' && r.action !== 'lost') choose(g, r);
   }
   if (g.rescued.length === g.people.filter((r) => r.atHome).length) {
     g.phase = 'won';
@@ -601,7 +650,7 @@ export function stateHash(g: Game): string {
 }
 export function exportRun(g: Game): RunExport {
   return {
-    format: 'smoke-3',
+    format: 'smoke-4',
     engine: ENGINE,
     seed: g.seed,
     ticks: g.tick,
@@ -611,7 +660,7 @@ export function exportRun(g: Game): RunExport {
   };
 }
 export function replayRun(run: RunExport): Game {
-  if (run.format !== 'smoke-3' || run.engine !== ENGINE) throw new Error('Unsupported Smoke replay version.');
+  if (run.format !== 'smoke-4' || run.engine !== ENGINE) throw new Error('Unsupported Smoke replay version.');
   if (!Number.isInteger(run.ticks) || run.ticks < 0 || run.ticks > 4000)
     throw new Error('Invalid replay length.');
   const g = createGame(run.seed);

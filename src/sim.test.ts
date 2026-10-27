@@ -39,6 +39,21 @@ describe('Smoke rescue decisions', () => {
     expect(r.resolution?.reason).toBe('distrust');
     expect(r.hf.will.voices.find((v) => v.voiceId === 'player')!.trust).toBeLessThan(before);
   });
+  it('loses a follower who has not seen the stair in a thick wave without the torch', () => {
+    const g = createGame(2);
+    const hacer = g.people[3]!;
+    travel(g, 268, 110);
+    for (let i = 0; i < 20 && hacer.status !== 'following'; i++)
+      step(g, { type: 'speak', id: 'hacer', line: 'come' });
+    expect(hacer.status).toBe('following');
+    step(g, { type: 'move', x: 180, y: 450 });
+    for (let i = 0; i < 400 && hacer.status === 'following'; i++) step(g);
+    expect(hacer.action).toBe('lost');
+    expect(hacer.line).toContain('cannot see you');
+    const y = hacer.y;
+    advance(g, 120);
+    expect(hacer.y).toBe(y);
+  });
   it('lets HF voice trust change the same invitation in the same surroundings', () => {
     const trusted = createGame(2),
       distrusted = createGame(2);
@@ -181,8 +196,8 @@ describe('resident smoke outcomes', () => {
   });
   it('rejects historical replay formats explicitly', () => {
     const run = exportRun(createGame(4));
-    expect(run.format).toBe('smoke-3');
-    expect(() => replayRun({ ...run, format: 'smoke-2' } as unknown as typeof run)).toThrow(
+    expect(run.format).toBe('smoke-4');
+    expect(() => replayRun({ ...run, format: 'smoke-3' } as unknown as typeof run)).toThrow(
       'Unsupported Smoke replay version',
     );
   });

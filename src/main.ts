@@ -155,7 +155,16 @@ caretaker.addChild(body);
 actorLayer.addChild(caretaker);
 const breathEdge = new Graphics();
 pixi.stage.addChild(breathEdge);
-const status = label('TAP A LANDING TO WALK', 80, 57, 8, 0x586451);
+// The smoke banner sits on a dark plate so smoke of the same colour never hides it. When the
+// canvas is drawn narrow (phones), it switches to one short line at a size that stays readable.
+const statusPlate = new Graphics();
+pixi.stage.addChild(statusPlate);
+const status = label('TAP A LANDING TO WALK', 180, 52, 9, paper);
+status.anchor.set(0.5, 0);
+let canvasScale = 1;
+new ResizeObserver(() => {
+  canvasScale = Math.max(0.1, scene.clientWidth / 360);
+}).observe(scene);
 
 function setPaused(value: boolean) {
   paused = value;
@@ -499,12 +508,26 @@ function draw(alpha: number, time: number) {
       .rect(0, 0, 360, 500)
       .stroke({ width: 15 + game.breath * 20, color: 0x6c4536, alpha: game.breath * 0.3 });
   const waveSeconds = Math.ceil(game.nextWaveTicks / 20);
-  status.text =
+  // One continuous size, about 11 CSS px on screen; the short line only when the long one does not fit.
+  status.style.fontSize = Math.min(20, Math.max(9, 11 / canvasScale));
+  const [long, short] =
     game.breath > 0.65
-      ? 'BREATH RUNNING LOW\nGO DOWN TO THE STREET'
+      ? ['BREATH RUNNING LOW\nGO DOWN TO THE STREET', 'BREATH LOW · GO DOWN']
       : game.wave === 'thick'
-        ? `THICK SMOKE · WAIT ON A LANDING\nTHINS IN ${waveSeconds} SECONDS`
-        : `SMOKE THINS · MOVE DOWN THE STAIR\nTHICKENS IN ${waveSeconds} SECONDS`;
+        ? [
+            `THICK SMOKE · WAIT ON A LANDING\nTHINS IN ${waveSeconds} SECONDS`,
+            `THICK SMOKE · WAIT ${waveSeconds}s`,
+          ]
+        : [
+            `SMOKE THINS · MOVE DOWN THE STAIR\nTHICKENS IN ${waveSeconds} SECONDS`,
+            `MOVE · THICK IN ${waveSeconds}s`,
+          ];
+  status.text = long;
+  if (status.width > 330) status.text = short;
+  statusPlate.clear();
+  statusPlate
+    .roundRect(180 - status.width / 2 - 6, 49, status.width + 12, status.height + 6, 3)
+    .fill({ color: ink, alpha: 0.88 });
 }
 if (labMode)
   pixi.ticker.add(

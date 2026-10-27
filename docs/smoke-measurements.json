@@ -1,5 +1,6 @@
 {
   "engine": "3.2.0",
+  "replayFormat": "smoke-4",
   "measurements": [
     {
       "seed": 1,
@@ -7,11 +8,15 @@
       "phase": "lost",
       "ticks": 3001,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3001,
       "hfTicks": 3,
-      "hash": "67909720"
+      "hash": "283d7206"
     },
     {
       "seed": 1,
@@ -19,11 +24,15 @@
       "phase": "lost",
       "ticks": 3001,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0.669908,
       "deadline": 3001,
       "hfTicks": 3,
-      "hash": "58494e2e"
+      "hash": "6704ebb6"
     },
     {
       "seed": 1,
@@ -31,11 +40,15 @@
       "phase": "won",
       "ticks": 1048,
       "rescued": 3,
+      "escorted": 3,
+      "solo": 0,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.105395,
       "deadline": 3001,
       "hfTicks": 1,
-      "hash": "de66bd96"
+      "hash": "a3ebc565"
     },
     {
       "seed": 1,
@@ -43,11 +56,31 @@
       "phase": "won",
       "ticks": 1556,
       "rescued": 3,
+      "escorted": 3,
+      "solo": 0,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.109103,
       "deadline": 3001,
       "hfTicks": 2,
-      "hash": "2f80369b"
+      "hash": "a24429f9"
+    },
+    {
+      "seed": 1,
+      "strategy": "pushy",
+      "phase": "lost",
+      "ticks": 3001,
+      "rescued": 2,
+      "escorted": 2,
+      "solo": 0,
+      "dead": 1,
+      "hospital": 0,
+      "home": 3,
+      "breath": 0,
+      "deadline": 3001,
+      "hfTicks": 3,
+      "hash": "d8e3e52c"
     },
     {
       "seed": 2,
@@ -55,11 +88,15 @@
       "phase": "lost",
       "ticks": 3002,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3002,
       "hfTicks": 3,
-      "hash": "5dfec8cb"
+      "hash": "643b02dc"
     },
     {
       "seed": 2,
@@ -67,11 +104,15 @@
       "phase": "lost",
       "ticks": 3002,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0.669386,
       "deadline": 3002,
       "hfTicks": 3,
-      "hash": "b98f6b5d"
+      "hash": "e6de7f3c"
     },
     {
       "seed": 2,
@@ -79,11 +120,15 @@
       "phase": "won",
       "ticks": 1047,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.105823,
       "deadline": 3002,
       "hfTicks": 1,
-      "hash": "57c7e31c"
+      "hash": "eae6fa33"
     },
     {
       "seed": 2,
@@ -91,11 +136,31 @@
       "phase": "won",
       "ticks": 1070,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.074626,
       "deadline": 3002,
       "hfTicks": 1,
-      "hash": "f608b318"
+      "hash": "5bd4b441"
+    },
+    {
+      "seed": 2,
+      "strategy": "pushy",
+      "phase": "lost",
+      "ticks": 3002,
+      "rescued": 2,
+      "escorted": 2,
+      "solo": 0,
+      "dead": 1,
+      "hospital": 0,
+      "home": 3,
+      "breath": 0,
+      "deadline": 3002,
+      "hfTicks": 3,
+      "hash": "fe2d7e52"
     },
     {
       "seed": 3,
@@ -103,11 +168,15 @@
       "phase": "lost",
       "ticks": 3003,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3003,
       "hfTicks": 3,
-      "hash": "54b3e70a"
+      "hash": "d627075c"
     },
     {
       "seed": 3,
@@ -115,11 +184,15 @@
       "phase": "lost",
       "ticks": 2810,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 2,
+      "hospital": 1,
       "home": 3,
       "breath": 1,
       "deadline": 3003,
       "hfTicks": 3,
-      "hash": "6c6b2d78"
+      "hash": "308f52ed"
     },
     {
       "seed": 3,
@@ -127,11 +200,15 @@
       "phase": "won",
       "ticks": 861,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3003,
       "hfTicks": 1,
-      "hash": "f69e9e32"
+      "hash": "a4840ce7"
     },
     {
       "seed": 3,
@@ -139,11 +216,31 @@
       "phase": "won",
       "ticks": 872,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3003,
       "hfTicks": 1,
-      "hash": "8012fb46"
+      "hash": "f3b96ae3"
+    },
+    {
+      "seed": 3,
+      "strategy": "pushy",
+      "phase": "lost",
+      "ticks": 3003,
+      "rescued": 2,
+      "escorted": 2,
+      "solo": 0,
+      "dead": 1,
+      "hospital": 0,
+      "home": 3,
+      "breath": 0.223238,
+      "deadline": 3003,
+      "hfTicks": 3,
+      "hash": "2b857bf3"
     },
     {
       "seed": 4,
@@ -151,11 +248,15 @@
       "phase": "lost",
       "ticks": 3004,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 4,
+      "hospital": 0,
       "home": 4,
       "breath": 0,
       "deadline": 3004,
       "hfTicks": 3,
-      "hash": "131a7b0e"
+      "hash": "6173ca89"
     },
     {
       "seed": 4,
@@ -163,11 +264,15 @@
       "phase": "lost",
       "ticks": 3004,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 4,
+      "hospital": 0,
       "home": 4,
       "breath": 0.615658,
       "deadline": 3004,
       "hfTicks": 3,
-      "hash": "89cac9e7"
+      "hash": "d9049a5c"
     },
     {
       "seed": 4,
@@ -175,11 +280,15 @@
       "phase": "won",
       "ticks": 1190,
       "rescued": 4,
+      "escorted": 3,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 4,
       "breath": 0.151804,
       "deadline": 3004,
       "hfTicks": 1,
-      "hash": "3c1f5f05"
+      "hash": "8eaf778e"
     },
     {
       "seed": 4,
@@ -187,11 +296,31 @@
       "phase": "won",
       "ticks": 1535,
       "rescued": 4,
+      "escorted": 3,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 4,
       "breath": 0.100871,
       "deadline": 3004,
       "hfTicks": 2,
-      "hash": "34e54879"
+      "hash": "b8fcf912"
+    },
+    {
+      "seed": 4,
+      "strategy": "pushy",
+      "phase": "lost",
+      "ticks": 3004,
+      "rescued": 3,
+      "escorted": 3,
+      "solo": 0,
+      "dead": 1,
+      "hospital": 0,
+      "home": 4,
+      "breath": 0,
+      "deadline": 3004,
+      "hfTicks": 3,
+      "hash": "fd6ae18a"
     },
     {
       "seed": 5,
@@ -199,11 +328,15 @@
       "phase": "lost",
       "ticks": 3005,
       "rescued": 1,
+      "escorted": 0,
+      "solo": 1,
+      "dead": 2,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3005,
       "hfTicks": 3,
-      "hash": "8e00bb53"
+      "hash": "2a95013a"
     },
     {
       "seed": 5,
@@ -211,11 +344,15 @@
       "phase": "lost",
       "ticks": 3005,
       "rescued": 1,
+      "escorted": 0,
+      "solo": 1,
+      "dead": 2,
+      "hospital": 0,
       "home": 3,
       "breath": 0.667861,
       "deadline": 3005,
       "hfTicks": 3,
-      "hash": "840e8514"
+      "hash": "0ac5733b"
     },
     {
       "seed": 5,
@@ -223,11 +360,15 @@
       "phase": "won",
       "ticks": 792,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.087691,
       "deadline": 3005,
       "hfTicks": 1,
-      "hash": "d8661cf8"
+      "hash": "52ce2bb8"
     },
     {
       "seed": 5,
@@ -235,11 +376,31 @@
       "phase": "won",
       "ticks": 1160,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.106409,
       "deadline": 3005,
       "hfTicks": 1,
-      "hash": "719eaa32"
+      "hash": "506dc9e9"
+    },
+    {
+      "seed": 5,
+      "strategy": "pushy",
+      "phase": "lost",
+      "ticks": 3005,
+      "rescued": 2,
+      "escorted": 1,
+      "solo": 1,
+      "dead": 1,
+      "hospital": 0,
+      "home": 3,
+      "breath": 0,
+      "deadline": 3005,
+      "hfTicks": 3,
+      "hash": "2c7bd6aa"
     },
     {
       "seed": 6,
@@ -247,11 +408,15 @@
       "phase": "lost",
       "ticks": 3006,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3006,
       "hfTicks": 3,
-      "hash": "799664f4"
+      "hash": "9789315d"
     },
     {
       "seed": 6,
@@ -259,11 +424,15 @@
       "phase": "lost",
       "ticks": 3006,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0.667361,
       "deadline": 3006,
       "hfTicks": 3,
-      "hash": "8fa526b3"
+      "hash": "94dbdbb0"
     },
     {
       "seed": 6,
@@ -271,11 +440,15 @@
       "phase": "won",
       "ticks": 1054,
       "rescued": 3,
+      "escorted": 3,
+      "solo": 0,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.127959,
       "deadline": 3006,
       "hfTicks": 1,
-      "hash": "a414c09e"
+      "hash": "9726195d"
     },
     {
       "seed": 6,
@@ -283,11 +456,31 @@
       "phase": "won",
       "ticks": 1556,
       "rescued": 3,
+      "escorted": 3,
+      "solo": 0,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.106495,
       "deadline": 3006,
       "hfTicks": 2,
-      "hash": "29385ddf"
+      "hash": "1c804727"
+    },
+    {
+      "seed": 6,
+      "strategy": "pushy",
+      "phase": "lost",
+      "ticks": 3006,
+      "rescued": 2,
+      "escorted": 2,
+      "solo": 0,
+      "dead": 1,
+      "hospital": 0,
+      "home": 3,
+      "breath": 0,
+      "deadline": 3006,
+      "hfTicks": 3,
+      "hash": "ee96a0bb"
     },
     {
       "seed": 7,
@@ -295,11 +488,15 @@
       "phase": "lost",
       "ticks": 3007,
       "rescued": 1,
+      "escorted": 0,
+      "solo": 1,
+      "dead": 2,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3007,
       "hfTicks": 3,
-      "hash": "56d432bb"
+      "hash": "b814db66"
     },
     {
       "seed": 7,
@@ -307,11 +504,15 @@
       "phase": "lost",
       "ticks": 2809,
       "rescued": 1,
+      "escorted": 0,
+      "solo": 1,
+      "dead": 2,
+      "hospital": 0,
       "home": 3,
       "breath": 1,
       "deadline": 3007,
       "hfTicks": 3,
-      "hash": "b6b02226"
+      "hash": "d17437e6"
     },
     {
       "seed": 7,
@@ -319,11 +520,15 @@
       "phase": "won",
       "ticks": 851,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.008357,
       "deadline": 3007,
       "hfTicks": 1,
-      "hash": "2dc74441"
+      "hash": "cb035da6"
     },
     {
       "seed": 7,
@@ -331,11 +536,31 @@
       "phase": "won",
       "ticks": 918,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.000762,
       "deadline": 3007,
       "hfTicks": 1,
-      "hash": "ce461878"
+      "hash": "b17a0966"
+    },
+    {
+      "seed": 7,
+      "strategy": "pushy",
+      "phase": "won",
+      "ticks": 944,
+      "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
+      "home": 3,
+      "breath": 0,
+      "deadline": 3007,
+      "hfTicks": 1,
+      "hash": "b23e34d0"
     },
     {
       "seed": 8,
@@ -343,11 +568,15 @@
       "phase": "lost",
       "ticks": 3008,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3008,
       "hfTicks": 3,
-      "hash": "200f226f"
+      "hash": "7a2b15fb"
     },
     {
       "seed": 8,
@@ -355,11 +584,15 @@
       "phase": "lost",
       "ticks": 3008,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0.613716,
       "deadline": 3008,
       "hfTicks": 3,
-      "hash": "9dd81894"
+      "hash": "94c56d82"
     },
     {
       "seed": 8,
@@ -367,11 +600,15 @@
       "phase": "won",
       "ticks": 900,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.060557,
       "deadline": 3008,
       "hfTicks": 1,
-      "hash": "07283e8b"
+      "hash": "b477925a"
     },
     {
       "seed": 8,
@@ -379,11 +616,31 @@
       "phase": "won",
       "ticks": 873,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.002774,
       "deadline": 3008,
       "hfTicks": 1,
-      "hash": "5d64efa6"
+      "hash": "04131038"
+    },
+    {
+      "seed": 8,
+      "strategy": "pushy",
+      "phase": "lost",
+      "ticks": 3008,
+      "rescued": 2,
+      "escorted": 2,
+      "solo": 0,
+      "dead": 1,
+      "hospital": 0,
+      "home": 3,
+      "breath": 0,
+      "deadline": 3008,
+      "hfTicks": 3,
+      "hash": "c23134fb"
     },
     {
       "seed": 9,
@@ -391,11 +648,15 @@
       "phase": "lost",
       "ticks": 3009,
       "rescued": 1,
+      "escorted": 0,
+      "solo": 1,
+      "dead": 3,
+      "hospital": 0,
       "home": 4,
       "breath": 0,
       "deadline": 3009,
       "hfTicks": 3,
-      "hash": "c221a548"
+      "hash": "c7684a01"
     },
     {
       "seed": 9,
@@ -403,11 +664,15 @@
       "phase": "lost",
       "ticks": 3009,
       "rescued": 1,
+      "escorted": 0,
+      "solo": 1,
+      "dead": 3,
+      "hospital": 0,
       "home": 4,
       "breath": 0.665836,
       "deadline": 3009,
       "hfTicks": 3,
-      "hash": "b61b1cec"
+      "hash": "0041a2d7"
     },
     {
       "seed": 9,
@@ -415,11 +680,15 @@
       "phase": "won",
       "ticks": 1058,
       "rescued": 4,
+      "escorted": 3,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 4,
       "breath": 0.121899,
       "deadline": 3009,
       "hfTicks": 1,
-      "hash": "ba0aea63"
+      "hash": "7e78de1f"
     },
     {
       "seed": 9,
@@ -427,11 +696,31 @@
       "phase": "won",
       "ticks": 1556,
       "rescued": 4,
+      "escorted": 3,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 4,
       "breath": 0.104643,
       "deadline": 3009,
       "hfTicks": 2,
-      "hash": "991b2b96"
+      "hash": "d124930a"
+    },
+    {
+      "seed": 9,
+      "strategy": "pushy",
+      "phase": "won",
+      "ticks": 1187,
+      "rescued": 4,
+      "escorted": 3,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
+      "home": 4,
+      "breath": 0,
+      "deadline": 3009,
+      "hfTicks": 1,
+      "hash": "da2ce55d"
     },
     {
       "seed": 10,
@@ -439,11 +728,15 @@
       "phase": "lost",
       "ticks": 3010,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3010,
       "hfTicks": 3,
-      "hash": "947c4045"
+      "hash": "d031c639"
     },
     {
       "seed": 10,
@@ -451,11 +744,15 @@
       "phase": "lost",
       "ticks": 3010,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0.665311,
       "deadline": 3010,
       "hfTicks": 3,
-      "hash": "7d727c6d"
+      "hash": "56e4634b"
     },
     {
       "seed": 10,
@@ -463,11 +760,15 @@
       "phase": "won",
       "ticks": 904,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.063339,
       "deadline": 3010,
       "hfTicks": 1,
-      "hash": "81ce0372"
+      "hash": "91d46d54"
     },
     {
       "seed": 10,
@@ -475,11 +776,31 @@
       "phase": "won",
       "ticks": 1202,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.089977,
       "deadline": 3010,
       "hfTicks": 2,
-      "hash": "d5d61591"
+      "hash": "0c334d3a"
+    },
+    {
+      "seed": 10,
+      "strategy": "pushy",
+      "phase": "won",
+      "ticks": 1280,
+      "rescued": 3,
+      "escorted": 3,
+      "solo": 0,
+      "dead": 0,
+      "hospital": 0,
+      "home": 3,
+      "breath": 0,
+      "deadline": 3010,
+      "hfTicks": 2,
+      "hash": "c37f5cb1"
     },
     {
       "seed": 11,
@@ -487,11 +808,15 @@
       "phase": "lost",
       "ticks": 3011,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3011,
       "hfTicks": 3,
-      "hash": "638f80d4"
+      "hash": "0a469284"
     },
     {
       "seed": 11,
@@ -499,11 +824,15 @@
       "phase": "lost",
       "ticks": 2807,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 1,
       "deadline": 3011,
       "hfTicks": 3,
-      "hash": "bb1e20d6"
+      "hash": "32d43915"
     },
     {
       "seed": 11,
@@ -511,11 +840,15 @@
       "phase": "won",
       "ticks": 957,
       "rescued": 3,
+      "escorted": 3,
+      "solo": 0,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3011,
       "hfTicks": 1,
-      "hash": "ff1bc56e"
+      "hash": "57d28d5b"
     },
     {
       "seed": 11,
@@ -523,11 +856,31 @@
       "phase": "won",
       "ticks": 1493,
       "rescued": 3,
+      "escorted": 3,
+      "solo": 0,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.120609,
       "deadline": 3011,
       "hfTicks": 2,
-      "hash": "f01e4ded"
+      "hash": "4e2cbc63"
+    },
+    {
+      "seed": 11,
+      "strategy": "pushy",
+      "phase": "lost",
+      "ticks": 3011,
+      "rescued": 2,
+      "escorted": 2,
+      "solo": 0,
+      "dead": 1,
+      "hospital": 0,
+      "home": 3,
+      "breath": 0,
+      "deadline": 3011,
+      "hfTicks": 3,
+      "hash": "2a50878d"
     },
     {
       "seed": 12,
@@ -535,11 +888,15 @@
       "phase": "lost",
       "ticks": 3012,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 2,
+      "hospital": 1,
       "home": 3,
       "breath": 0,
       "deadline": 3012,
       "hfTicks": 3,
-      "hash": "2f3b0e45"
+      "hash": "a2c8083a"
     },
     {
       "seed": 12,
@@ -547,11 +904,15 @@
       "phase": "lost",
       "ticks": 3012,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 2,
+      "hospital": 1,
       "home": 3,
       "breath": 0.611775,
       "deadline": 3012,
       "hfTicks": 3,
-      "hash": "71e1b710"
+      "hash": "586f9c15"
     },
     {
       "seed": 12,
@@ -559,11 +920,15 @@
       "phase": "won",
       "ticks": 1057,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.140347,
       "deadline": 3012,
       "hfTicks": 1,
-      "hash": "58a9a039"
+      "hash": "3ff54d0c"
     },
     {
       "seed": 12,
@@ -571,11 +936,31 @@
       "phase": "won",
       "ticks": 1083,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.096773,
       "deadline": 3012,
       "hfTicks": 1,
-      "hash": "2f136d3a"
+      "hash": "e1a0cbd8"
+    },
+    {
+      "seed": 12,
+      "strategy": "pushy",
+      "phase": "lost",
+      "ticks": 3012,
+      "rescued": 2,
+      "escorted": 2,
+      "solo": 0,
+      "dead": 1,
+      "hospital": 0,
+      "home": 3,
+      "breath": 0,
+      "deadline": 3012,
+      "hfTicks": 3,
+      "hash": "00a39bfb"
     },
     {
       "seed": 13,
@@ -583,11 +968,15 @@
       "phase": "lost",
       "ticks": 3013,
       "rescued": 1,
+      "escorted": 0,
+      "solo": 1,
+      "dead": 2,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3013,
       "hfTicks": 3,
-      "hash": "003fd75a"
+      "hash": "37e86bfd"
     },
     {
       "seed": 13,
@@ -595,11 +984,15 @@
       "phase": "lost",
       "ticks": 3013,
       "rescued": 1,
+      "escorted": 0,
+      "solo": 1,
+      "dead": 2,
+      "hospital": 0,
       "home": 3,
       "breath": 0.663786,
       "deadline": 3013,
       "hfTicks": 3,
-      "hash": "1e610f40"
+      "hash": "72ef2d1f"
     },
     {
       "seed": 13,
@@ -607,11 +1000,15 @@
       "phase": "won",
       "ticks": 789,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.088484,
       "deadline": 3013,
       "hfTicks": 1,
-      "hash": "fd101657"
+      "hash": "a0692f97"
     },
     {
       "seed": 13,
@@ -619,11 +1016,31 @@
       "phase": "won",
       "ticks": 857,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.003392,
       "deadline": 3013,
       "hfTicks": 1,
-      "hash": "a990106e"
+      "hash": "70a530c1"
+    },
+    {
+      "seed": 13,
+      "strategy": "pushy",
+      "phase": "won",
+      "ticks": 808,
+      "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
+      "home": 3,
+      "breath": 0,
+      "deadline": 3013,
+      "hfTicks": 1,
+      "hash": "30d62a0f"
     },
     {
       "seed": 14,
@@ -631,11 +1048,15 @@
       "phase": "lost",
       "ticks": 3014,
       "rescued": 1,
+      "escorted": 0,
+      "solo": 1,
+      "dead": 3,
+      "hospital": 0,
       "home": 4,
       "breath": 0,
       "deadline": 3014,
       "hfTicks": 3,
-      "hash": "26e00bdf"
+      "hash": "60bce74d"
     },
     {
       "seed": 14,
@@ -643,11 +1064,15 @@
       "phase": "lost",
       "ticks": 3014,
       "rescued": 1,
+      "escorted": 0,
+      "solo": 1,
+      "dead": 3,
+      "hospital": 0,
       "home": 4,
       "breath": 0.663287,
       "deadline": 3014,
       "hfTicks": 3,
-      "hash": "fade0e24"
+      "hash": "9c6446ca"
     },
     {
       "seed": 14,
@@ -655,11 +1080,15 @@
       "phase": "won",
       "ticks": 1057,
       "rescued": 4,
+      "escorted": 3,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 4,
       "breath": 0.138397,
       "deadline": 3014,
       "hfTicks": 1,
-      "hash": "cc529da5"
+      "hash": "3c564c91"
     },
     {
       "seed": 14,
@@ -667,11 +1096,31 @@
       "phase": "won",
       "ticks": 1535,
       "rescued": 4,
+      "escorted": 3,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 4,
       "breath": 0.108231,
       "deadline": 3014,
       "hfTicks": 2,
-      "hash": "8100f9b5"
+      "hash": "23eafe78"
+    },
+    {
+      "seed": 14,
+      "strategy": "pushy",
+      "phase": "won",
+      "ticks": 1182,
+      "rescued": 4,
+      "escorted": 3,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
+      "home": 4,
+      "breath": 0,
+      "deadline": 3014,
+      "hfTicks": 1,
+      "hash": "5a3b843e"
     },
     {
       "seed": 15,
@@ -679,11 +1128,15 @@
       "phase": "lost",
       "ticks": 3015,
       "rescued": 1,
+      "escorted": 0,
+      "solo": 1,
+      "dead": 2,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3015,
       "hfTicks": 3,
-      "hash": "8ae3a5e0"
+      "hash": "39943bd2"
     },
     {
       "seed": 15,
@@ -691,11 +1144,15 @@
       "phase": "lost",
       "ticks": 2805,
       "rescued": 1,
+      "escorted": 0,
+      "solo": 1,
+      "dead": 2,
+      "hospital": 0,
       "home": 3,
       "breath": 1,
       "deadline": 3015,
       "hfTicks": 3,
-      "hash": "55c69eab"
+      "hash": "e0bb58d0"
     },
     {
       "seed": 15,
@@ -703,11 +1160,15 @@
       "phase": "won",
       "ticks": 791,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.089559,
       "deadline": 3015,
       "hfTicks": 1,
-      "hash": "2e5b3fe5"
+      "hash": "fd46ba8b"
     },
     {
       "seed": 15,
@@ -715,11 +1176,31 @@
       "phase": "won",
       "ticks": 1160,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.09927,
       "deadline": 3015,
       "hfTicks": 1,
-      "hash": "d94a2e29"
+      "hash": "6203e5cf"
+    },
+    {
+      "seed": 15,
+      "strategy": "pushy",
+      "phase": "lost",
+      "ticks": 3015,
+      "rescued": 2,
+      "escorted": 1,
+      "solo": 1,
+      "dead": 1,
+      "hospital": 0,
+      "home": 3,
+      "breath": 0,
+      "deadline": 3015,
+      "hfTicks": 3,
+      "hash": "8bed7183"
     },
     {
       "seed": 16,
@@ -727,11 +1208,15 @@
       "phase": "lost",
       "ticks": 3016,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3016,
       "hfTicks": 3,
-      "hash": "8dcaf78f"
+      "hash": "fb750f63"
     },
     {
       "seed": 16,
@@ -739,11 +1224,15 @@
       "phase": "lost",
       "ticks": 3016,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0.609811,
       "deadline": 3016,
       "hfTicks": 3,
-      "hash": "6881a362"
+      "hash": "332dc700"
     },
     {
       "seed": 16,
@@ -751,11 +1240,15 @@
       "phase": "won",
       "ticks": 1057,
       "rescued": 3,
+      "escorted": 3,
+      "solo": 0,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.144307,
       "deadline": 3016,
       "hfTicks": 1,
-      "hash": "e0e22520"
+      "hash": "9ccaa5d4"
     },
     {
       "seed": 16,
@@ -763,11 +1256,31 @@
       "phase": "won",
       "ticks": 1535,
       "rescued": 3,
+      "escorted": 3,
+      "solo": 0,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.100073,
       "deadline": 3016,
       "hfTicks": 2,
-      "hash": "c1f6eef8"
+      "hash": "8b5225c1"
+    },
+    {
+      "seed": 16,
+      "strategy": "pushy",
+      "phase": "lost",
+      "ticks": 3016,
+      "rescued": 2,
+      "escorted": 2,
+      "solo": 0,
+      "dead": 1,
+      "hospital": 0,
+      "home": 3,
+      "breath": 0,
+      "deadline": 3016,
+      "hfTicks": 3,
+      "hash": "b5e83836"
     },
     {
       "seed": 17,
@@ -775,11 +1288,15 @@
       "phase": "lost",
       "ticks": 3017,
       "rescued": 1,
+      "escorted": 0,
+      "solo": 1,
+      "dead": 2,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3017,
       "hfTicks": 3,
-      "hash": "6fa3aa09"
+      "hash": "cc6dd6b7"
     },
     {
       "seed": 17,
@@ -787,11 +1304,15 @@
       "phase": "lost",
       "ticks": 3017,
       "rescued": 1,
+      "escorted": 0,
+      "solo": 1,
+      "dead": 2,
+      "hospital": 0,
       "home": 3,
       "breath": 0.661763,
       "deadline": 3017,
       "hfTicks": 3,
-      "hash": "37c8d499"
+      "hash": "517750bb"
     },
     {
       "seed": 17,
@@ -799,11 +1320,15 @@
       "phase": "won",
       "ticks": 889,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.050165,
       "deadline": 3017,
       "hfTicks": 1,
-      "hash": "dbf9d6d8"
+      "hash": "e6791535"
     },
     {
       "seed": 17,
@@ -811,11 +1336,31 @@
       "phase": "won",
       "ticks": 928,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3017,
       "hfTicks": 1,
-      "hash": "63e2a92f"
+      "hash": "7070075b"
+    },
+    {
+      "seed": 17,
+      "strategy": "pushy",
+      "phase": "lost",
+      "ticks": 3017,
+      "rescued": 2,
+      "escorted": 1,
+      "solo": 1,
+      "dead": 1,
+      "hospital": 0,
+      "home": 3,
+      "breath": 0.126226,
+      "deadline": 3017,
+      "hfTicks": 3,
+      "hash": "90a56237"
     },
     {
       "seed": 18,
@@ -823,11 +1368,15 @@
       "phase": "lost",
       "ticks": 3018,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3018,
       "hfTicks": 3,
-      "hash": "45715562"
+      "hash": "54b5eea3"
     },
     {
       "seed": 18,
@@ -835,11 +1384,15 @@
       "phase": "lost",
       "ticks": 3018,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0.661239,
       "deadline": 3018,
       "hfTicks": 3,
-      "hash": "83581490"
+      "hash": "8588bf7f"
     },
     {
       "seed": 18,
@@ -847,11 +1400,15 @@
       "phase": "won",
       "ticks": 895,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.061739,
       "deadline": 3018,
       "hfTicks": 1,
-      "hash": "a53e85da"
+      "hash": "f7316e47"
     },
     {
       "seed": 18,
@@ -859,11 +1416,31 @@
       "phase": "won",
       "ticks": 862,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.014921,
       "deadline": 3018,
       "hfTicks": 1,
-      "hash": "e832927a"
+      "hash": "bcbd07a8"
+    },
+    {
+      "seed": 18,
+      "strategy": "pushy",
+      "phase": "lost",
+      "ticks": 3018,
+      "rescued": 2,
+      "escorted": 2,
+      "solo": 0,
+      "dead": 1,
+      "hospital": 0,
+      "home": 3,
+      "breath": 0,
+      "deadline": 3018,
+      "hfTicks": 3,
+      "hash": "85e2038d"
     },
     {
       "seed": 19,
@@ -871,11 +1448,15 @@
       "phase": "lost",
       "ticks": 3019,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 4,
+      "hospital": 0,
       "home": 4,
       "breath": 0,
       "deadline": 3019,
       "hfTicks": 3,
-      "hash": "ad81d836"
+      "hash": "000943c4"
     },
     {
       "seed": 19,
@@ -883,11 +1464,15 @@
       "phase": "lost",
       "ticks": 2803,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 1,
       "home": 4,
       "breath": 1,
       "deadline": 3019,
       "hfTicks": 3,
-      "hash": "0afd78a5"
+      "hash": "c50ee2ef"
     },
     {
       "seed": 19,
@@ -895,11 +1480,15 @@
       "phase": "won",
       "ticks": 1141,
       "rescued": 4,
+      "escorted": 3,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 4,
       "breath": 0.103853,
       "deadline": 3019,
       "hfTicks": 1,
-      "hash": "e10996d8"
+      "hash": "9c516c94"
     },
     {
       "seed": 19,
@@ -907,11 +1496,31 @@
       "phase": "won",
       "ticks": 1535,
       "rescued": 4,
+      "escorted": 3,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 4,
       "breath": 0.107138,
       "deadline": 3019,
       "hfTicks": 2,
-      "hash": "064c559c"
+      "hash": "ecfd33de"
+    },
+    {
+      "seed": 19,
+      "strategy": "pushy",
+      "phase": "lost",
+      "ticks": 3019,
+      "rescued": 2,
+      "escorted": 2,
+      "solo": 0,
+      "dead": 2,
+      "hospital": 0,
+      "home": 4,
+      "breath": 0,
+      "deadline": 3019,
+      "hfTicks": 3,
+      "hash": "933f9038"
     },
     {
       "seed": 20,
@@ -919,11 +1528,15 @@
       "phase": "lost",
       "ticks": 3020,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0,
       "deadline": 3020,
       "hfTicks": 3,
-      "hash": "320dc628"
+      "hash": "dbd44da1"
     },
     {
       "seed": 20,
@@ -931,11 +1544,15 @@
       "phase": "lost",
       "ticks": 3020,
       "rescued": 0,
+      "escorted": 0,
+      "solo": 0,
+      "dead": 3,
+      "hospital": 0,
       "home": 3,
       "breath": 0.607873,
       "deadline": 3020,
       "hfTicks": 3,
-      "hash": "6410b4cc"
+      "hash": "5a453db5"
     },
     {
       "seed": 20,
@@ -943,11 +1560,15 @@
       "phase": "won",
       "ticks": 903,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.039392,
       "deadline": 3020,
       "hfTicks": 1,
-      "hash": "8f18191e"
+      "hash": "777bdc89"
     },
     {
       "seed": 20,
@@ -955,11 +1576,31 @@
       "phase": "won",
       "ticks": 1202,
       "rescued": 3,
+      "escorted": 2,
+      "solo": 1,
+      "dead": 0,
+      "hospital": 0,
       "home": 3,
       "breath": 0.084877,
       "deadline": 3020,
       "hfTicks": 2,
-      "hash": "5de0ed0a"
+      "hash": "f9571110"
+    },
+    {
+      "seed": 20,
+      "strategy": "pushy",
+      "phase": "won",
+      "ticks": 1190,
+      "rescued": 3,
+      "escorted": 3,
+      "solo": 0,
+      "dead": 0,
+      "hospital": 0,
+      "home": 3,
+      "breath": 0,
+      "deadline": 3020,
+      "hfTicks": 1,
+      "hash": "79358208"
     }
   ]
 }

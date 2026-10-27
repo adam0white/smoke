@@ -21,7 +21,7 @@ The first iteration4 CI (6726551, run40317627440) passed24browser checks but tim
 
 One independent read-only Codex review of the finished slice found no unresolved findings, including the dead-Sevim helper guard. Final CI and live receipts are recorded in the coordinator report.
 
-Replay format is now smoke-3. Changed hazard state/mechanics intentionally require older smoke-2 exports to use their original build. New exports replay exactly; HF remains3.2.0.
+Replay format is now smoke-4 (2026-10-27: lost and pushed followers). Before that it was smoke-3. Changed hazard state/mechanics intentionally require older smoke-2 exports to use their original build. New exports replay exactly; HF remains3.2.0.
 
 # Iteration 2 verification — 2026-10-26
 
