@@ -19,7 +19,7 @@ app.innerHTML = `<header><div class="brand">Lale Apartmanı · Istanbul<strong>S
 const lab = createLab({ game: 'smoke' });
 const requestedSeed = new URLSearchParams(location.search).get('seed');
 let game = createGame(
-  new URLSearchParams(location.search).has('lab') && requestedSeed !== null
+  requestedSeed !== null && /^\d+$/.test(requestedSeed) && Number(requestedSeed) <= 0xffffffff
     ? Number(requestedSeed)
     : crypto.getRandomValues(new Uint32Array(1))[0]!,
 );
@@ -36,7 +36,6 @@ let replay: RunExport | null = null;
 let attempt = 0;
 const pending: Input[] = [];
 const keys = new Set<string>();
-const labMode = new URLSearchParams(location.search).has('lab');
 const frameSamples: number[] = [];
 let frameStart = 0;
 const overlay = document.querySelector<HTMLDivElement>('#overlay')!;
@@ -314,7 +313,7 @@ function feedback(note: string) {
 }
 function showMenu() {
   showSheet(
-    `<div class="eyebrow">The night is paused</div><h2 id="sheet-title">Paused.</h2><button class="primary" id="resume">Keep going</button><button class="secondary" id="new-game">New game</button><div id="new-confirm" hidden><p>Start a new night? This ends the current night.</p><button class="secondary" id="confirm-new">Start new night</button><button class="secondary" id="cancel-new">Keep this night</button></div><button class="secondary" id="fullscreen">Full screen</button><a class="secondary" href="https://human.adamwhite.work/games/">All games</a><button class="secondary" id="stopping">I'm stopping</button><button class="secondary" id="confused">I'm confused</button><button class="secondary" id="export">Download this run</button><label><input id="recording" type="checkbox" ${lab.telemetryOn ? 'checked' : ''}>Record this play for the game lab</label><p class="minor">Recorded play is linked to other lab play on this device and kept for 180 days. <a href="https://human.adamwhite.work/lab/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a></p><p class="minor">Feedback opens a draft for you to review. Nothing is sent until you submit.</p>`,
+    `<div class="eyebrow">The night is paused</div><h2 id="sheet-title">Paused.</h2><button class="primary" id="resume">Keep going</button><button class="secondary" id="new-game">New game</button><div id="new-confirm" hidden><p>Start a new night? This ends the current night.</p><button class="secondary" id="confirm-new">Start new night</button><button class="secondary" id="cancel-new">Keep this night</button></div><button class="secondary" id="fullscreen">Full screen</button><a class="secondary" href="https://human.adamwhite.work/games/">All games</a><button class="secondary" id="stopping">I'm stopping</button><button class="secondary" id="confused">I'm confused</button><button class="secondary" id="export">Download this run</button><label><input id="recording" type="checkbox" ${lab.telemetryOn ? 'checked' : ''}>Record this play for the game lab</label><p class="minor">Recorded play is linked to other lab play on this device and kept for 180 days. <a href="https://human.adamwhite.work/lab/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a></p><p class="minor">Feedback opens a draft for you to review. Nothing is sent until you submit.</p><details><summary>Debug</summary><p class="minor">Seed ${game.seed} · Tick ${game.tick} · HF 3.2.0</p><button class="secondary" id="debug-replay">Check replay</button><p class="minor" id="debug-result"></p></details>`,
   );
   document.querySelector('#new-game')!.addEventListener('click', () => {
     document.querySelector<HTMLElement>('#new-confirm')!.hidden = false;
@@ -335,6 +334,14 @@ function showMenu() {
   document.querySelector('#stopping')!.addEventListener('click', () => feedback("I'm stopping"));
   document.querySelector('#confused')!.addEventListener('click', () => feedback("I'm confused"));
   document.querySelector('#export')!.addEventListener('click', download);
+  document.querySelector('#debug-replay')!.addEventListener('click', () => {
+    const result = document.querySelector('#debug-result')!;
+    try {
+      result.textContent = `Replay matches: ${stateHash(replayRun(exportRun(game)))}`;
+    } catch {
+      result.textContent = 'Replay did not match. Download this run for review.';
+    }
+  });
   document.querySelector<HTMLInputElement>('#recording')!.onchange = (e) =>
     lab.setTelemetryOff(!(e.target as HTMLInputElement).checked);
 }
@@ -529,14 +536,13 @@ function draw(alpha: number, time: number) {
     .roundRect(180 - status.width / 2 - 6, 49, status.width + 12, status.height + 6, 3)
     .fill({ color: ink, alpha: 0.88 });
 }
-if (labMode)
-  pixi.ticker.add(
-    () => {
-      frameStart = performance.now();
-    },
-    undefined,
-    50,
-  );
+pixi.ticker.add(
+  () => {
+    frameStart = performance.now();
+  },
+  undefined,
+  50,
+);
 pixi.ticker.add(() => {
   const now = performance.now();
   if (!lastFrame) lastFrame = now;
@@ -551,15 +557,14 @@ pixi.ticker.add(() => {
   }
   draw(paused ? 1 : accumulator / 50, now);
 });
-if (labMode)
-  pixi.ticker.add(
-    () => {
-      frameSamples.push(performance.now() - frameStart);
-      if (frameSamples.length > 240) frameSamples.shift();
-    },
-    undefined,
-    -50,
-  );
+pixi.ticker.add(
+  () => {
+    frameSamples.push(performance.now() - frameStart);
+    if (frameSamples.length > 240) frameSamples.shift();
+  },
+  undefined,
+  -50,
+);
 lab.trackRun(() => ({ ...exportRun(game), playback: replaying }), {
   runKey: () => `${attempt}:${replaying ? 'playback' : 'play'}`,
 });
@@ -582,20 +587,19 @@ document.querySelector('#start')!.addEventListener('click', () => {
   lab.screen('stairwell');
   updateDOM();
 });
-if (labMode)
-  Object.assign(window, {
-    smoke: {
-      getState: () => game,
-      enqueue: (input: Input) => {
-        pending.push(input);
-      },
-      exportRun: () => exportRun(game),
-      frameTimes: () => [...frameSamples],
-      replayCheck: () => stateHash(replayRun(exportRun(game))),
-      advance: (ticks = 1) => {
-        for (let n = 0; n < ticks && game.phase === 'playing'; n++) advance();
-        return game;
-      },
+Object.assign(window, {
+  smoke: {
+    getState: () => game,
+    enqueue: (input: Input) => {
+      pending.push(input);
     },
-  });
+    exportRun: () => exportRun(game),
+    frameTimes: () => [...frameSamples],
+    replayCheck: () => stateHash(replayRun(exportRun(game))),
+    advance: (ticks = 1) => {
+      for (let n = 0; n < ticks && game.phase === 'playing'; n++) advance();
+      return game;
+    },
+  },
+});
 updateDOM();

@@ -3,8 +3,8 @@
 [Play Smoke on the Stairs](https://smoke.adamwhite.work).
 You are the caretaker of Lale Apartmanı, an apartment building in Istanbul.
 Find who is home among Sevim, Burak, Derya and Hacer. Get them to the street before time or breath runs out.
-Neighbours can refuse. Those you do not rescue leave with firefighters and go
-to hospital. Nobody dies. This night changes no other game.
+Neighbours can refuse. Those left inside may die from smoke or leave with firefighters and go
+to hospital. This night changes no other game.
 
 ## How to play
 
@@ -28,7 +28,7 @@ Choose **Enter the stairwell →** to start. Time passes while you play.
   **Escape** to resume. Switching tabs or leaving the window also pauses play.
 
 The run ends when everyone is safe, time runs out, or your breath runs out.
-The outcome lists rescues and hospital arrivals. **Try this night again** starts
+The outcome lists rescues, deaths and hospital arrivals. **Try this night again** starts
 with the same seed. **Watch this run** plays back the completed run.
 **Download this run** saves a JSON file from the pause menu or outcome.
 **Tell us about this night** opens Feedback from the outcome.
@@ -48,8 +48,8 @@ not model sub-minute HF arousal or physiological smoke injury.
 
 Downloads contain the seed, timed inputs, full game state, engine version and
 state hash. The source's `replayRun` rebuilds the run from the seed and inputs
-and checks the hash. It accepts the current `smoke-2` format with HF 3.2.0.
-Earlier `smoke-1` exports require the earlier build. There is no file-import control. `?lab=1` exposes developer replay checks.
+and checks the hash. It accepts the current `smoke-5` format with HF 3.2.0.
+Earlier exports require the earlier build. There is no file-import control. The pause menu has a collapsed **Debug** item with seed, tick and a replay check. Use `?seed=1` for a specific night; no lab flag is required.
 
 The lab client records play by default, including run snapshots and event/error
 logs, and attempts uploads. Smoke needs the central service update before these

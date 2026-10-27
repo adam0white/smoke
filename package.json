@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test",
-    "check:lane": "pnpm lint && pnpm typecheck && pnpm test"
+    "check:lane": "pnpm lint && pnpm typecheck && pnpm test",
+    "deploy": "pnpm build && pnpm exec wrangler deploy"
   },
   "dependencies": {
     "@adam0white/human-framework": "3.2.0",

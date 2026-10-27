@@ -58,3 +58,16 @@ it('warns in plain English as exposure grows without hiding follower or stop sta
   r.exitMethod = 'escorted';
   expect(readScreen(g, r.id).people[2]!.status).toBe('Outside');
 });
+
+it('gives a stopped resident a recovery instruction they can use', () => {
+  const g = createGame(4);
+  const r = g.people[3]!;
+  Object.assign(r, { status: 'waiting', action: 'lost', asleep: false });
+  Object.assign(g.player, { x: r.x, y: r.y });
+  g.torch = true;
+  expect(readScreen(g, r.id).people[3]!.status).toContain('Show me the stair');
+  expect(readScreen(g, r.id).available).toContain('route');
+  r.routeKnown = true;
+  expect(readScreen(g, r.id).people[3]!.status).toContain('Wait for thin smoke');
+  expect(readScreen(g, r.id).available).not.toContain('route');
+});

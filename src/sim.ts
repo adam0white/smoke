@@ -71,7 +71,7 @@ export interface Game {
   lastDecisionTick: number;
 }
 export interface RunExport {
-  format: 'smoke-4';
+  format: 'smoke-5';
   engine: '3.2.0';
   seed: number;
   ticks: number;
@@ -214,12 +214,10 @@ export function createGame(seed: number): Game {
   };
 }
 
-/** A follower stops in a thick wave: no light and no seen stair, or following under HF protest. */
+/** A follower stops in a thick wave: no seen stair, or following under HF protest. */
 function stopsInSmoke(g: Game, r: Resident): boolean {
   const floor = Math.max(0, Math.min(4, Math.round((450 - r.y) / 85)));
-  return (
-    r.y < 435 && g.smoke[floor]! > 0.65 && (Boolean(r.hf.activity?.protest) || (!g.torch && !r.routeKnown))
-  );
+  return r.y < 435 && g.smoke[floor]! > 0.65 && (Boolean(r.hf.activity?.protest) || !r.routeKnown);
 }
 const distance = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
@@ -562,14 +560,14 @@ export function step(g: Game, input?: Input): void {
       }
     } else if (r.status === 'following') {
       // In a thick wave two followers stop where they stand until spoken to again: someone who has
-      // never seen the stair and has no light, and anyone HF marks as following under protest.
-      // Showing the stair clears the stop; nothing else restarts them.
-      const lost = !g.torch && !r.routeKnown;
+      // never seen the stair, even in torchlight, and anyone HF marks as following under protest.
+      // Showing an unknown stair clears that stop; a protested follower needs a new invitation in thin smoke.
+      const lost = !r.routeKnown;
       if (stopsInSmoke(g, r)) {
         r.status = 'waiting';
         r.action = 'lost';
         r.line = lost
-          ? 'I cannot see you or the stair in this smoke.'
+          ? 'I cannot see you or the stair in this smoke. Show me the stair.'
           : 'I have stopped. You pushed me into thick smoke.';
         event(g, `${r.name}: ${r.line}`);
         continue;
@@ -650,7 +648,7 @@ export function stateHash(g: Game): string {
 }
 export function exportRun(g: Game): RunExport {
   return {
-    format: 'smoke-4',
+    format: 'smoke-5',
     engine: ENGINE,
     seed: g.seed,
     ticks: g.tick,
@@ -660,7 +658,7 @@ export function exportRun(g: Game): RunExport {
   };
 }
 export function replayRun(run: RunExport): Game {
-  if (run.format !== 'smoke-4' || run.engine !== ENGINE) throw new Error('Unsupported Smoke replay version.');
+  if (run.format !== 'smoke-5' || run.engine !== ENGINE) throw new Error('Unsupported Smoke replay version.');
   if (!Number.isInteger(run.ticks) || run.ticks < 0 || run.ticks > 4000)
     throw new Error('Invalid replay length.');
   const g = createGame(run.seed);
