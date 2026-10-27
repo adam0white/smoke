@@ -11,11 +11,12 @@ function travel(g: Game, x: number, y: number) {
   step(g, { type: 'move', x, y });
   for (let i = 0; i < 1000 && g.phase === 'playing' && (g.player.x !== x || g.player.y !== y); i++) step(g);
 }
-type Strategy = 'silent' | 'careless' | 'competent' | 'cold' | 'pushy';
+type Strategy = 'silent' | 'careless' | 'competent' | 'cold' | 'pushy' | 'torch-pushy';
 function bot(seed: number, strategy: Strategy) {
   const g = createGame(seed);
-  if (strategy === 'pushy') {
-    // The live careless player: no torch, press Come now until someone follows, then Street.
+  if (strategy === 'pushy' || strategy === 'torch-pushy') {
+    if (strategy === 'torch-pushy') step(g, { type: 'torch' });
+    // Press Come now until someone follows, then Street. The careless control has no torch.
     // One command per quarter second, the same cadence as the live driver.
     let stage = 0;
     while (g.phase === 'playing') {
@@ -83,7 +84,7 @@ function bot(seed: number, strategy: Strategy) {
 describe('twenty seeded nights', () => {
   it('measures silent, careless and informed strategies with exact replay', () => {
     const measurements = Array.from({ length: 20 }, (_, i) => i + 1).flatMap((seed) =>
-      (['silent', 'careless', 'competent', 'cold', 'pushy'] as const).map((strategy) => {
+      (['silent', 'careless', 'competent', 'cold', 'pushy', 'torch-pushy'] as const).map((strategy) => {
         const g = bot(seed, strategy);
         const run = exportRun(g);
         expect(stateHash(replayRun(run))).toBe(run.hash);
@@ -108,11 +109,11 @@ describe('twenty seeded nights', () => {
     if (process.env.SMOKE_MEASUREMENT_PATH)
       writeFileSync(
         process.env.SMOKE_MEASUREMENT_PATH,
-        `${JSON.stringify({ engine: '3.2.0', replayFormat: 'smoke-4', measurements }, null, 2)}\n`,
+        `${JSON.stringify({ engine: '3.2.0', replayFormat: 'smoke-5', measurements }, null, 2)}\n`,
       );
     console.log(
       JSON.stringify({
-        strategies: ['silent', 'careless', 'competent', 'cold', 'pushy'].map((strategy) => ({
+        strategies: ['silent', 'careless', 'competent', 'cold', 'pushy', 'torch-pushy'].map((strategy) => ({
           strategy,
           wins: measurements.filter((m) => m.strategy === strategy && m.phase === 'won').length,
           deaths: measurements.filter((m) => m.strategy === strategy).reduce((n, m) => n + m.dead, 0),
@@ -127,7 +128,7 @@ describe('twenty seeded nights', () => {
     );
     expect(
       measurements.filter((m) => m.strategy === 'cold' && m.phase === 'won').length,
-    ).toBeGreaterThanOrEqual(16);
+    ).toBeGreaterThanOrEqual(19);
     expect(measurements.some((m) => m.strategy === 'silent' && m.dead > 0)).toBe(true);
     expect(measurements.filter((m) => m.phase === 'won').every((m) => m.dead === 0 && m.hospital === 0)).toBe(
       true,
@@ -138,10 +139,18 @@ describe('twenty seeded nights', () => {
     ).toBeGreaterThan(0);
     expect(
       measurements.filter((m) => m.strategy === 'competent' && m.phase === 'won').length,
-    ).toBeGreaterThanOrEqual(16);
+    ).toBeGreaterThanOrEqual(19);
+    // Torchlight does not establish a route through thick smoke.
+    expect(
+      measurements.filter((m) => m.strategy === 'torch-pushy' && m.phase === 'won').length,
+    ).toBeLessThanOrEqual(7);
+    // Careless pushing without light remains a distinct, occasionally successful control.
+    expect(
+      measurements.filter((m) => m.strategy === 'pushy' && m.phase === 'won').length,
+    ).toBeGreaterThanOrEqual(4);
     // Pushing people into the dark loses most nights.
     expect(
       measurements.filter((m) => m.strategy === 'pushy' && m.phase === 'won').length,
-    ).toBeLessThanOrEqual(10);
+    ).toBeLessThanOrEqual(8);
   }, 30000);
 });

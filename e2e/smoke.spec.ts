@@ -20,7 +20,7 @@ declare global {
 test('speech is contextual, all events persist, and pause has navigation', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  const response = await page.goto('/?lab=1&seed=1');
+  const response = await page.goto('/?seed=1');
   expect(response?.headers()['content-security-policy']).toContain("script-src 'self'");
   await page.getByRole('button', { name: 'Enter the stairwell' }).click();
   await expect(page.locator('canvas')).toBeVisible();
@@ -49,6 +49,14 @@ test('speech is contextual, all events persist, and pause has navigation', async
       () => window.smoke.getState().people.find((p) => p.id === 'sevim')!.resolution?.verdict,
     ),
   ).not.toBe('assented');
+  // Check the real run before the synthetic event-feed fixture below changes its state.
+  await page.getByRole('button', { name: 'Pause and open menu' }).click();
+  const debug = page.locator('details').filter({ hasText: 'Debug' });
+  await expect(debug).not.toHaveAttribute('open');
+  await debug.locator('summary').click();
+  await page.getByRole('button', { name: 'Check replay', exact: true }).click();
+  await expect(page.locator('#debug-result')).toContainText('Replay matches:');
+  await page.getByRole('button', { name: 'Keep going', exact: true }).click();
   // Same-tick reports from different people must all render, regardless of selection.
   await page.evaluate(() => {
     const state = window.smoke.getState();
@@ -91,7 +99,7 @@ test('speech is contextual, all events persist, and pause has navigation', async
 });
 
 test('keyboard climbs, export replays and a complete loss names the outcome', async ({ page }) => {
-  await page.goto('/?lab=1&seed=4');
+  await page.goto('/?seed=4');
   await expect(page.getByText('People left inside may die.')).toBeVisible();
   await page.getByRole('button', { name: 'Enter the stairwell' }).click();
   await page.keyboard.down('ArrowUp');
@@ -124,7 +132,7 @@ test('keyboard climbs, export replays and a complete loss names the outcome', as
 });
 
 test('WebGL loss pauses with a recovery and export', async ({ page }) => {
-  await page.goto('/?lab=1');
+  await page.goto('/');
   await page.getByRole('button', { name: 'Enter the stairwell' }).click();
   await page.locator('canvas').dispatchEvent('webglcontextlost');
   await expect(page.getByRole('heading', { name: 'The picture was interrupted.' })).toBeVisible();
@@ -135,7 +143,7 @@ test('Chromium frame CPU stays below16ms at fourfold slowdown', async ({ page, b
   test.skip(browserName !== 'chromium', 'Chromium CPU slowdown measurement');
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
-  await page.goto('/?lab=1');
+  await page.goto('/');
   await page.getByRole('button', { name: 'Enter the stairwell' }).click();
   await page.waitForTimeout(2500);
   const times = await page.evaluate(() =>
@@ -154,7 +162,7 @@ test('Chromium frame CPU stays below16ms at fourfold slowdown', async ({ page, b
 });
 
 test('screen teaches an escort and exposes smoke timing in words', async ({ page }) => {
-  await page.goto('/?lab=1&seed=1');
+  await page.goto('/?seed=1');
   await page.getByRole('button', { name: 'Enter the stairwell' }).click();
   await expect(page.locator('#smoke-clock')).toContainText(/smoke.*in.*Stair closes in/);
   await expect(page.locator('#guidance')).toContainText('approach');
@@ -185,7 +193,7 @@ for (const leaveDerya of [false, true]) {
       : 'cold policy wins using rendered text and enabled controls only',
     async ({ page }) => {
       test.setTimeout(60000);
-      await page.goto('/?lab=1&seed=4');
+      await page.goto('/?seed=4');
       await page.getByRole('button', { name: 'Enter the stairwell' }).click();
       for (let second = 0; second < 160; second++) {
         if (await page.getByRole('heading', { name: /Everyone is out|walked out with you/ }).isVisible())

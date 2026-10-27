@@ -15,7 +15,10 @@ function movementStatus(g: Game, r: Resident): string {
   if (r.action === 'route') return 'Checking the stair';
   if (r.action === 'help') return 'Helping with the books';
   if (r.action === 'books') return 'Stopped · tying the books';
-  if (r.action === 'lost') return 'Stopped · lost in the smoke. Speak to me again.';
+  if (r.action === 'lost')
+    return r.routeKnown
+      ? 'Stopped · pushed into thick smoke. Wait for thin smoke, then invite me again.'
+      : 'Stopped · lost in the smoke. Show me the stair.';
   if (r.action === 'rest') return 'Stopped · catching my breath';
   if (r.asleep) return 'Stopped · was asleep. Approach and speak.';
   if (!r.booksReady) return 'Stopped · needs help with the books';

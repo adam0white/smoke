@@ -54,6 +54,28 @@ describe('Smoke rescue decisions', () => {
     advance(g, 120);
     expect(hacer.y).toBe(y);
   });
+  it('stops an unshown follower even with torchlight, then lets showing the stair recover them', () => {
+    const g = createGame(2);
+    step(g, { type: 'torch' });
+    const hacer = g.people[3]!;
+    travel(g, 268, 110);
+    for (let i = 0; i < 20 && hacer.status !== 'following' && hacer.action !== 'lost'; i++)
+      step(g, { type: 'speak', id: 'hacer', line: 'come' });
+    step(g, { type: 'move', x: 180, y: 450 });
+    for (let i = 0; i < 400 && hacer.status === 'following'; i++) step(g);
+    expect(hacer.action).toBe('lost');
+    const y = hacer.y;
+    advance(g, 60);
+    expect(hacer.y).toBe(y);
+    travel(g, hacer.x, hacer.y);
+    step(g, { type: 'speak', id: 'hacer', line: 'route' });
+    expect(hacer.routeKnown).toBe(true);
+    expect(hacer.action).toBe('wait');
+    step(g, { type: 'speak', id: 'hacer', line: 'together' });
+    travel(g, 180, 450);
+    advance(g, 500);
+    expect(hacer.status).toBe('safe');
+  });
   it('lets HF voice trust change the same invitation in the same surroundings', () => {
     const trusted = createGame(2),
       distrusted = createGame(2);
@@ -196,8 +218,8 @@ describe('resident smoke outcomes', () => {
   });
   it('rejects historical replay formats explicitly', () => {
     const run = exportRun(createGame(4));
-    expect(run.format).toBe('smoke-4');
-    expect(() => replayRun({ ...run, format: 'smoke-3' } as unknown as typeof run)).toThrow(
+    expect(run.format).toBe('smoke-5');
+    expect(() => replayRun({ ...run, format: 'smoke-4' } as unknown as typeof run)).toThrow(
       'Unsupported Smoke replay version',
     );
   });
