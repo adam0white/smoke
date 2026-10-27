@@ -81,6 +81,9 @@ export interface RunExport {
 }
 
 const START = 370;
+/** Sevim's exit line when she leaves before the bundle is tied. The outcome reads it,
+ * because Burak may still finish the bundle after she is outside. */
+export const SEVIM_LEFT_BOOKS = 'I left the books behind. I am outside.';
 const baselineTraits = {
   honesty: 0.5,
   emotionality: 0.5,
@@ -409,10 +412,10 @@ export function step(g: Game, input?: Input): void {
   if (g.phase !== 'playing') return;
   g.tick++;
   if (g.tick === 1) {
-    for (const r of g.people) event(g, `${r.name}: ${r.line}`);
+    for (const r of g.people) event(g, r.atHome ? `${r.name}: ${r.line}` : `${r.name} is away tonight.`);
     event(
       g,
-      `Smoke is starting on landing ${g.smokeOrigin}. Dark waves slow you and cost breath. Cross the stair when smoke thins.`,
+      `Smoke is starting on landing ${g.smokeOrigin}. Waves of thick smoke slow you and cost breath. Cross the stair when smoke thins.`,
     );
   }
   if (input) {
@@ -512,8 +515,11 @@ export function step(g: Game, input?: Input): void {
         sevim.taskTicks++;
         if (sevim.taskTicks >= 80 && !sevim.booksReady) {
           sevim.booksReady = true;
-          sevim.line = 'The bundle is tied. Show me the stair, then walk with me.';
-          event(g, `${sevim.name}: ${sevim.line}`);
+          // Copy only: Sevim may already be outside, so she cannot ask to be led.
+          if (sevim.status !== 'safe') {
+            sevim.line = 'The bundle is tied. Show me the stair, then walk with me.';
+            event(g, `${sevim.name}: ${sevim.line}`);
+          }
         }
         if (sevim.booksReady) {
           r.status = 'waiting';
@@ -528,16 +534,20 @@ export function step(g: Game, input?: Input): void {
       r.status = 'safe';
       r.line =
         r.id === 'sevim'
-          ? 'The books are with me. I am outside.'
+          ? r.booksReady
+            ? 'The books are with me. I am outside.'
+            : SEVIM_LEFT_BOOKS
           : r.id === 'burak'
             ? g.rescued.includes('sevim')
-              ? 'Sevim is out. The stair was clear.'
-              : 'I am outside. I checked the stair.'
+              ? 'Sevim is out. I am out too.'
+              : g.routeFound
+                ? 'I am outside. I checked the stair.'
+                : 'I am outside.'
             : r.id === 'derya'
               ? 'Outside. I need to sit for a moment.'
-              : 'I can see the stair. I am outside.';
+              : 'I am outside. I could not have found the stair alone.';
       g.rescued.push(r.id);
-      event(g, `${r.name} reached the front door. ${r.line}`);
+      event(g, `${r.name} reached the street. ${r.name}: ${r.line}`);
       if (r.hf.activity)
         finish(r.hf, {
           affordanceId: r.hf.activity.affordanceId,
@@ -557,7 +567,7 @@ export function step(g: Game, input?: Input): void {
   }
   if (g.rescued.length === g.people.filter((r) => r.atHome).length) {
     g.phase = 'won';
-    event(g, 'Everyone home tonight reached the front door.');
+    event(g, 'Everyone home tonight reached the street.');
   } else if (g.tick >= g.deadline || g.breath >= 1) {
     g.phase = 'lost';
     for (const r of g.people)
@@ -566,12 +576,18 @@ export function step(g: Game, input?: Input): void {
         r.line = 'Firefighters brought me out alive. I went to hospital with smoke injuries.';
         event(g, `${r.name}: ${r.line}`);
       }
+    const dead = g.people.filter((r) => r.status === 'dead').length;
+    const hospital = g.people.filter((r) => r.status === 'hospital').length;
     event(
       g,
-      `${g.rescued.length} reached the door safely. ${g.people.filter((r) => r.status === 'dead').length} died inside. Firefighters brought the remaining residents to hospital.`,
+      `${g.rescued.length} reached the street. ${dead} died inside.${hospital ? ` Firefighters brought ${hospital === 1 ? 'one more resident' : `${hospital} more residents`} out to hospital.` : ''}`,
     );
   } else if (g.tick === 1600) event(g, 'Watch for the thin wave. Cross the stair while you can see it.');
-  else if (g.tick === 2400) event(g, 'One minute until the stair closes. Bring everyone to the front door.');
+  else if (g.tick === 2400)
+    event(
+      g,
+      `${Math.ceil((g.deadline - g.tick) / 20)} seconds until the stair closes. Bring everyone to the street.`,
+    );
 }
 
 export function stateHash(g: Game): string {

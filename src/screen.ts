@@ -1,4 +1,4 @@
-import { canSpeak, type Game, type Resident } from './sim';
+import { canSpeak, type Game, type Resident, SEVIM_LEFT_BOOKS } from './sim';
 
 export const speech = ['come', 'books', 'together', 'route'] as const;
 function movementStatus(g: Game, r: Resident): string {
@@ -36,7 +36,7 @@ export function readOutcome(g: Game) {
     heading: g.phase === 'won' ? 'Everyone is out.' : `${escorted} walked out with you.`,
     lines: home.map((r) => {
       if (r.status === 'safe')
-        return `${r.name} ${r.exitMethod === 'escorted' ? 'walked out with you' : 'escaped alone'}.`;
+        return `${r.name} ${r.exitMethod === 'escorted' ? 'walked out with you' : 'escaped alone'}${r.line === SEVIM_LEFT_BOOKS ? ', without her books' : ''}.`;
       if (r.status === 'dead')
         return `${r.name} was left inside and died from smoke before firefighters reached ${r.id === 'burak' ? 'him' : 'her'}.`;
       if (r.status === 'hospital')

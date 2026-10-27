@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { readOutcome, readScreen } from './screen';
-import { createGame } from './sim';
+import { createGame, SEVIM_LEFT_BOOKS } from './sim';
 
 it('shows every follower and stop reason, plus smoke and closure seconds', () => {
   const g = createGame(4);
@@ -38,6 +38,8 @@ it('names escorted, solo, hospital and fatal outcomes separately', () => {
     'Derya was left inside. Firefighters brought her out alive. She went to hospital with smoke injuries.',
     'Hacer was left inside and died from smoke before firefighters reached her.',
   ]);
+  g.people[0]!.line = SEVIM_LEFT_BOOKS;
+  expect(readOutcome(g).lines[0]).toBe('Sevim walked out with you, without her books.');
   expect(readScreen(g, 'hacer').people[3]!.status).toBe('Died from smoke');
   expect(readScreen(g, 'hacer').available).toHaveLength(0);
 });
