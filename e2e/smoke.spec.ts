@@ -49,6 +49,14 @@ test('speech is contextual, all events persist, and pause has navigation', async
       () => window.smoke.getState().people.find((p) => p.id === 'sevim')!.resolution?.verdict,
     ),
   ).not.toBe('assented');
+  // Check the real run before the synthetic event-feed fixture below changes its state.
+  await page.getByRole('button', { name: 'Pause and open menu' }).click();
+  const debug = page.locator('details').filter({ hasText: 'Debug' });
+  await expect(debug).not.toHaveAttribute('open');
+  await debug.locator('summary').click();
+  await page.getByRole('button', { name: 'Check replay', exact: true }).click();
+  await expect(page.locator('#debug-result')).toContainText('Replay matches:');
+  await page.getByRole('button', { name: 'Keep going', exact: true }).click();
   // Same-tick reports from different people must all render, regardless of selection.
   await page.evaluate(() => {
     const state = window.smoke.getState();
@@ -76,11 +84,6 @@ test('speech is contextual, all events persist, and pause has navigation', async
   const tick = await page.evaluate(() => window.smoke.getState().tick);
   await page.waitForTimeout(250);
   expect(await page.evaluate(() => window.smoke.getState().tick)).toBe(tick);
-  const debug = page.locator('details').filter({ hasText: 'Debug' });
-  await expect(debug).not.toHaveAttribute('open');
-  await debug.locator('summary').click();
-  await page.getByRole('button', { name: 'Check replay', exact: true }).click();
-  await expect(page.locator('#debug-result')).toContainText('Replay matches:');
   await expect(page.getByRole('button', { name: 'Full screen', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'All games', exact: true })).toHaveAttribute(
     'href',
