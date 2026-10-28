@@ -4,7 +4,7 @@
 You are the caretaker of Lale Apartmanı, an apartment building in Istanbul.
 Find who is home among Sevim, Burak, Derya and Hacer. Get them to the street before time or breath runs out.
 Neighbours can refuse. Those left inside may die from smoke or leave with firefighters and go
-to hospital. This night changes no other game.
+to hospital. This night changes no other game. The pause menu links to **People across games**, but Smoke does not continue people between games.
 
 ## How to play
 
@@ -35,7 +35,7 @@ with the same seed. **Watch this run** plays back the completed run.
 
 ## People and rescue rules
 
-[Human Framework](https://human.adamwhite.work) **4.4.0** supplies each person's
+[Human Framework](https://human.adamwhite.work) **4.8.0** supplies each person's
 state, needs, decisions, trust in your voice, and assent or refusal of requests.
 Smoke supplies the offered choices and their conditions, the words shown,
 movement, smoke, torchlight, time and breath limits, and rescue outcomes.
