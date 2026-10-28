@@ -466,6 +466,7 @@ function advance() {
   updateDOM();
   if (game.phase !== 'playing' && !ended) showEnd();
 }
+let lastBannerKey = '';
 function draw(alpha: number, time: number) {
   smoke.clear();
   for (let f = 1; f < 5; f++) {
@@ -517,26 +518,32 @@ function draw(alpha: number, time: number) {
       .rect(0, 0, 360, 500)
       .stroke({ width: 15 + game.breath * 20, color: 0x6c4536, alpha: game.breath * 0.3 });
   const waveSeconds = Math.ceil(game.nextWaveTicks / 20);
-  // One continuous size, about 11 CSS px on screen; the short line only when the long one does not fit.
-  status.style.fontSize = Math.min(20, Math.max(9, 11 / canvasScale));
-  const [long, short] =
-    game.breath > 0.65
-      ? ['BREATH RUNNING LOW\nGO DOWN TO THE STREET', 'BREATH LOW · GO DOWN']
-      : game.wave === 'thick'
-        ? [
-            `THICK SMOKE · WAIT ON A LANDING\nTHINS IN ${waveSeconds} SECONDS`,
-            `THICK SMOKE · WAIT ${waveSeconds}s`,
-          ]
-        : [
-            `SMOKE THINS · MOVE DOWN THE STAIR\nTHICKENS IN ${waveSeconds} SECONDS`,
-            `MOVE · THICK IN ${waveSeconds}s`,
-          ];
-  status.text = long;
-  if (status.width > 330) status.text = short;
-  statusPlate.clear();
-  statusPlate
-    .roundRect(180 - status.width / 2 - 6, 49, status.width + 12, status.height + 6, 3)
-    .fill({ color: ink, alpha: 0.88 });
+  const bannerKey = `${canvasScale}:${waveSeconds}:${game.breath > 0.65 ? 'breath' : game.wave}`;
+  // Measuring the long line and then replacing it with the short line rerasterizes
+  // text. Fit the banner only when its actual content or size changes.
+  if (bannerKey !== lastBannerKey) {
+    lastBannerKey = bannerKey;
+    // One continuous size, about 11 CSS px on screen; the short line only when the long one does not fit.
+    status.style.fontSize = Math.min(20, Math.max(9, 11 / canvasScale));
+    const [long, short] =
+      game.breath > 0.65
+        ? ['BREATH RUNNING LOW\nGO DOWN TO THE STREET', 'BREATH LOW · GO DOWN']
+        : game.wave === 'thick'
+          ? [
+              `THICK SMOKE · WAIT ON A LANDING\nTHINS IN ${waveSeconds} SECONDS`,
+              `THICK SMOKE · WAIT ${waveSeconds}s`,
+            ]
+          : [
+              `SMOKE THINS · MOVE DOWN THE STAIR\nTHICKENS IN ${waveSeconds} SECONDS`,
+              `MOVE · THICK IN ${waveSeconds}s`,
+            ];
+    status.text = long;
+    if (status.width > 330) status.text = short;
+    statusPlate.clear();
+    statusPlate
+      .roundRect(180 - status.width / 2 - 6, 49, status.width + 12, status.height + 6, 3)
+      .fill({ color: ink, alpha: 0.88 });
+  }
 }
 pixi.ticker.add(
   () => {
