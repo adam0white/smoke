@@ -144,7 +144,7 @@ describe('Smoke rescue decisions', () => {
     step(g, { type: 'speak', id: 'sevim', line: 'books' });
     advance(g, 200);
     const run = exportRun(g);
-    expect(stateHash(replayRun(run))).toBe(run.hash);
+    expect(exportRun(replayRun(JSON.parse(JSON.stringify(run))))).toEqual(run);
     const bad = structuredClone(run);
     bad.inputs[0]!.input = { type: 'move', x: 180, y: 110 };
     expect(() => replayRun(bad)).toThrow('hash mismatch');

@@ -650,13 +650,16 @@ function stepWorld(g: Game, input?: Input): void {
     );
 }
 
-export function stateHash(g: Game): string {
-  let h = 2166136261;
-  const text = JSON.stringify(g, (_key, value) =>
+function canonicalState(g: Game): string {
+  return JSON.stringify(g, (_key, value) =>
     value && typeof value === 'object' && !Array.isArray(value)
       ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)))
       : value,
   );
+}
+export function stateHash(g: Game): string {
+  let h = 2166136261;
+  const text = canonicalState(g);
   for (let i = 0; i < text.length; i++) {
     h ^= text.charCodeAt(i);
     h = Math.imul(h, 16777619);
@@ -713,6 +716,7 @@ export function replayRun(run: RunExport): Game {
     index !== run.inputs.length ||
     stateHash(g) !== run.hash ||
     stateHash(run.state) !== run.hash ||
+    canonicalState(g) !== canonicalState(run.state) ||
     JSON.stringify(human(g).checkpoint()) !== JSON.stringify(run.human)
   )
     throw new Error('Replay hash mismatch.');
