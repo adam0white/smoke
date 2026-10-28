@@ -501,9 +501,9 @@ export function createHumanRun(
       clock,
       nextAt,
       length: journal.length,
-      revisions: structuredClone(revisions),
-      active: structuredClone(active),
-      books: structuredClone(books),
+      revisions: { ...revisions },
+      active: { ...active },
+      books: { ...books },
     };
   }
   function rollback(token: ReturnType<typeof beginTransaction>) {

@@ -432,7 +432,20 @@ function speak(g: Game, input: Extract<Input, { type: 'speak' }>) {
 /** A tick publishes its world only after all HF receipts are accepted. */
 export function step(g: Game, input?: Input): void {
   if (g.phase !== 'playing') return;
-  const candidate = structuredClone(g);
+  // Events, logged inputs, resolutions and HF readings are immutable here.
+  // Copy only the containers this tick mutates; do not recopy their growing history.
+  const candidate: Game = {
+    ...g,
+    player: { ...g.player },
+    people: g.people.map((person) => ({
+      ...person,
+      hf: { ...person.hf, will: { ...person.hf.will } },
+    })),
+    smoke: [...g.smoke],
+    rescued: [...g.rescued],
+    log: [...g.log],
+    events: [...g.events],
+  };
   const transaction: { token?: HumanTransaction } = {};
   humanRuns.set(candidate, human(g));
   transactions.set(candidate, transaction);
