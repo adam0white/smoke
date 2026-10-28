@@ -1,21 +1,8 @@
-import {
-  type Affordance,
-  answerNow,
-  begin,
-  createPerson,
-  credence,
-  decide,
-  finish,
-  tick as humanTick,
-  interrupt,
-  MINUTES_PER_YEAR,
-  type Person,
-  perceive,
-  type SuggestionResolution,
-} from '@adam0white/human-framework';
+import { replay as replayHuman } from '@adam0white/human-framework';
+import { createHumanRun, restoreHumanRun } from './hf4';
 
 export const WORLD = { width: 360, height: 500, ground: 450, landings: [365, 280, 195, 110] } as const;
-export const ENGINE = '3.2.0';
+export const ENGINE = '4.4.0';
 export type Input =
   | { type: 'move'; x: number; y: number }
   | { type: 'speak'; id: string; line: 'come' | 'books' | 'together' | 'route' }
@@ -46,8 +33,11 @@ export interface Resident {
   taskTicks: number;
   booksReady: boolean;
   routeKnown: boolean;
-  hf: Person;
-  resolution?: SuggestionResolution;
+  hf: {
+    activity?: { protest?: boolean };
+    will: { voices: { voiceId: string; trust: number; accepted: number; refused: number }[] };
+  };
+  resolution?: { verdict: string; reason: string };
 }
 export interface Game {
   tick: number;
@@ -71,8 +61,9 @@ export interface Game {
   lastDecisionTick: number;
 }
 export interface RunExport {
-  format: 'smoke-5';
-  engine: '3.2.0';
+  format: 'smoke-6';
+  engine: '4.4.0';
+  human: ReturnType<ReturnType<typeof createHumanRun>['checkpoint']>;
   seed: number;
   ticks: number;
   inputs: LoggedInput[];
@@ -80,69 +71,68 @@ export interface RunExport {
   hash: string;
 }
 
-const START = 370;
+type HumanHost = ReturnType<typeof createHumanRun>;
+type HumanTransaction = ReturnType<HumanHost['beginTransaction']>;
+const stagedWorlds = new WeakMap<Game, Game>();
+const transactions = new WeakMap<Game, { token?: HumanTransaction }>();
+const humanRuns = new WeakMap<Game, ReturnType<typeof createHumanRun>>();
+const human = (g: Game) => {
+  const h = humanRuns.get(g);
+  if (!h) throw new Error('Missing HF run');
+  return h;
+};
+function actualFor(g: Game) {
+  return (action: { person: string }) => {
+    const world = stagedWorlds.get(g) ?? g;
+    const r = world.people.find((p) => p.id === action.person);
+    return {
+      exposures: [],
+      observedProgress: [],
+      ...(r?.status === 'safe' ? { psychological: { safety: 0.9 } } : {}),
+    };
+  };
+}
+// Save host metadata only when a tick submits HF work; archives remain save/export checkpoints.
+function mutatingHuman(g: Game): HumanHost {
+  const h = human(g);
+  const transaction = transactions.get(g);
+  if (transaction && !transaction.token) transaction.token = h.beginTransaction();
+  return h;
+}
 /** Sevim's exit line when she leaves before the bundle is tied. The outcome reads it,
  * because Burak may still finish the bundle after she is outside. */
 export const SEVIM_LEFT_BOOKS = 'I left the books behind. I am outside.';
-const baselineTraits = {
-  honesty: 0.5,
-  emotionality: 0.5,
-  extraversion: 0.5,
-  agreeableness: 0.5,
-  conscientiousness: 0.5,
-  openness: 0.5,
-};
-const baselineValues = {
-  benevolence: 0.5,
-  universalism: 0.5,
-  tradition: 0.5,
-  conformity: 0.5,
-  security: 0.5,
-  achievement: 0.5,
-  power: 0.5,
-  hedonism: 0.5,
-  stimulation: 0.5,
-  selfDirection: 0.5,
-};
 const cast = [
   {
     id: 'sevim',
     name: 'Sevim',
-    age: 69,
     y: 365,
-    traits: { honesty: 0.6, extraversion: 0.6, agreeableness: 0.35, conscientiousness: 0.85, openness: 0.4 },
     line: 'These exercise books come with me.',
   },
   {
     id: 'burak',
     name: 'Burak',
-    age: 31,
     y: 280,
-    traits: { honesty: 0.8, extraversion: 0.3, agreeableness: 0.7, conscientiousness: 0.8, openness: 0.5 },
     line: 'I will check the way down.',
   },
   {
     id: 'derya',
     name: 'Derya',
-    age: 44,
     y: 195,
-    traits: { honesty: 0.7, extraversion: 0.35, agreeableness: 0.6, emotionality: 0.5, openness: 0.55 },
     line: 'I have just come off nights. Give me a moment.',
   },
   // Hacer is visiting the top landing, rather than importing a new permanent flat.
   {
     id: 'hacer',
     name: 'Hacer',
-    age: 58,
     y: 110,
-    traits: { extraversion: 0.8, agreeableness: 0.45, honesty: 0.5, emotionality: 0.6 },
     line: 'I cannot see the stair to the front door.',
   },
 ] as const;
 
 export function createGame(seed: number): Game {
   const normalizedSeed = Number.isFinite(seed) ? seed >>> 0 : 1;
-  return {
+  const g: Game = {
     tick: 0,
     seed: normalizedSeed,
     phase: 'playing',
@@ -172,30 +162,7 @@ export function createGame(seed: number): Game {
       action: 'wait',
       booksReady: c.id !== 'sevim',
       routeKnown: c.id === 'burak',
-      hf: createPerson({
-        id: `hf.cast.${c.id}.${c.id === 'hacer' ? 'voice' : 'stairwell'}`,
-        name: c.name,
-        seed: normalizedSeed + i + 1,
-        now: START - 1,
-        bornAt: START - c.age * MINUTES_PER_YEAR,
-        sex: c.id === 'burak' ? 'male' : 'female',
-        traits: { ...baselineTraits, ...c.traits },
-        values: { ...baselineValues },
-        body: {
-          sleepPressure: i === (normalizedSeed >>> 1) % 4 ? 0.72 : c.id === 'derya' ? 0.55 : 0.2,
-          satiety: 0.8,
-          hydration: 0.8,
-        },
-        needs: {
-          safety: 0.8,
-          meaning: c.id === 'sevim' ? 0.05 : 0.65,
-          belonging: 0.55,
-          autonomy: i === (normalizedSeed + 1) % 4 ? 0.3 : 0.7,
-        },
-        voices: [{ voiceId: 'player', trust: c.id === 'hacer' ? 0.35 : 0.6 }],
-        lexicon: { plainEnglish: true, names: { player: 'the caretaker' } },
-        enable: { suggestionReasons: true },
-      }),
+      hf: { will: { voices: [] } },
     })),
     smoke: [0, 0, 0, 0, 0],
     smokeOrigin: 1 + (normalizedSeed % 4),
@@ -212,6 +179,10 @@ export function createGame(seed: number): Game {
     events: [],
     lastDecisionTick: -1,
   };
+  const h = createHumanRun(normalizedSeed, actualFor(g));
+  humanRuns.set(g, h);
+  for (const r of g.people) r.hf.will.voices = h.voices(r.id).map((v) => ({ ...v }));
+  return g;
 }
 
 /** A follower stops in a thick wave: no seen stair, or following under HF protest. */
@@ -230,14 +201,14 @@ function event(g: Game, text: string) {
   g.notice = text;
 }
 
-function offer(id: string, label: string, advertises: Affordance['advertises'], effort = 0.05): Affordance {
-  return { id, action: id, label, duration: 1, effort, advertises };
+function offer(id: string, label: string, advertises: Record<string, number>, effort = 0.05) {
+  return { id, label, expected: advertises, effort };
 }
 
 // Offers describe observed surroundings. HF scores needs, fear, trust and suggestions.
 // Following the caretaker requires an invitation; proximity never creates one.
-function offers(g: Game, r: Resident, invitation?: string): Affordance[] {
-  const route = credence(r.hf, 'stair-visible');
+function offers(g: Game, r: Resident, invitation?: string) {
+  const route = r.routeKnown ? 1 : 0.5;
   const smoke = g.smoke[Math.max(1, Math.round((450 - r.y) / 85))] ?? 0;
   const list = [
     offer('wait', r.booksReady ? 'wait by my door' : 'keep the books together', {
@@ -292,8 +263,16 @@ function offers(g: Game, r: Resident, invitation?: string): Affordance[] {
 }
 
 function applyChoice(r: Resident, choice: string) {
+  const wasFollowing = r.status === 'following';
   r.action = choice;
-  if (choice === 'wait' || choice === 'rest') r.status = 'waiting';
+  if (choice === 'wait' || choice === 'rest') {
+    r.status = 'waiting';
+    if (wasFollowing)
+      r.line =
+        choice === 'rest'
+          ? 'I need to catch my breath. Please come back for me.'
+          : 'I am stopping here. Please come back for me.';
+  }
   if (choice === 'follow') {
     r.status = 'following';
     r.line = 'Stay where I can see you. I am coming.';
@@ -322,37 +301,56 @@ function choose(
   g.lastDecisionTick = g.tick;
   const previousLine = r.line;
   const previousAction = r.action;
-  const available = offers(g, r, suggestion?.affordanceId);
-  if (suggestion) {
-    const answer = answerNow(r.hf, available, suggestion);
-    r.resolution = answer.resolution;
-    if (answer.booked) {
-      r.line = refusal(r);
-      if (!quiet) event(g, `${r.name}: ${r.line}`);
-      return;
-    }
-  }
-  if (r.hf.activity) {
-    interrupt(r.hf, r.hf.now, suggestion ? 'a neighbour speaks' : 'the stair changes');
-    finish(r.hf, {
-      affordanceId: r.hf.activity.affordanceId,
-      action: r.hf.activity.action,
-      status: 'interrupted',
-      at: r.hf.now,
-    });
-  }
-  const record = decide(r.hf, available, suggestion ? { suggestion } : {});
-  const picked = available.find((a) => a.id === record.chosenAffordanceId);
-  if (record.suggestion) r.resolution = record.suggestion;
-  if (picked) {
-    begin(r.hf, picked, record);
-    applyChoice(r, picked.id);
-  }
-  if (suggestion && ['refused', 'deferred', 'modified'].includes(record.suggestion?.verdict ?? ''))
+  const available = offers(
+    g,
+    r,
+    suggestion?.affordanceId ?? (r.status === 'following' ? 'follow' : undefined),
+  );
+  if (suggestion && human(g).active[r.id])
+    syncHuman(g, mutatingHuman(g).interrupt(r.id, g.tick * 50 + 1, 'a neighbour speaks'));
+  const result = mutatingHuman(g).decide(
+    r.id,
+    g.tick * 50 + 2,
+    available,
+    suggestion && {
+      affordanceId: suggestion.affordanceId,
+      strength: suggestion.strength,
+      insist: suggestion.insist,
+    },
+  );
+  syncHuman(g, result);
+  const decision = result.findLast((e) => e.person === r.id && e.data.kind === 'decision');
+  const record = decision?.data.kind === 'decision' ? decision.data.decision : undefined;
+  if (record?.suggestion) r.resolution = record.suggestion;
+
+  if (suggestion && ['refused', 'deferred', 'modified'].includes(record?.suggestion?.verdict ?? ''))
     r.line = refusal(r);
-  if (record.suggestion?.verdict === 'complied') r.line = 'I will come, but stop pushing me.';
+  if (record?.suggestion?.verdict === 'complied') r.line = 'I will come, but stop pushing me.';
   if (!quiet && (suggestion || r.line !== previousLine || r.action !== previousAction))
     event(g, `${r.name}: ${r.line}`);
+}
+
+function syncHuman(g: Game, events: ReturnType<ReturnType<typeof createHumanRun>['advance']>) {
+  const h = human(g);
+  for (const r of g.people) {
+    const active = h.active[r.id];
+    const previous = r.hf.activity;
+    const decisions = events.filter((e) => e.person === r.id && e.data.kind === 'decision');
+    const last = decisions.at(-1);
+    const decision = last?.data.kind === 'decision' ? last.data.decision : undefined;
+    if (decision?.suggestion) r.resolution = decision.suggestion;
+    r.hf.will.voices = h.voices(r.id).map((v) => ({ ...v }));
+    r.hf.activity = active
+      ? { protest: decision?.suggestion?.verdict === 'complied' || (previous?.protest && !decision) }
+      : undefined;
+    if (active && decision && !['safe', 'dead', 'hospital'].includes(r.status))
+      applyChoice(r, active.actionId);
+    else if (!active && previous && ['following', 'escaping', 'helping'].includes(r.status)) {
+      r.status = 'waiting';
+      r.action = 'wait';
+      r.line = 'I have stopped. Please come back for me.';
+    }
+  }
 }
 
 function refusal(r: Resident): string {
@@ -360,7 +358,7 @@ function refusal(r: Resident): string {
     return 'You keep pushing. I need to see a clear way, not hear it again.';
   if (r.id === 'sevim' && !r.booksReady) return 'Not without the books. Stay and help me bundle them.';
   if (!r.routeKnown) return 'I cannot see the stair. Turn on the torch and show me.';
-  return r.resolution?.says ?? 'Give me a moment.';
+  return 'Give me a moment.';
 }
 
 function approach(p: { x: number; y: number }, x: number, y: number, speed: number) {
@@ -392,16 +390,7 @@ function speak(g: Game, input: Extract<Input, { type: 'speak' }>) {
   }
   if (input.line === 'route' && r.id !== 'burak') {
     r.routeKnown = true;
-    perceive(r.hf, [
-      {
-        at: r.hf.now,
-        channel: 'saw',
-        kind: 'stair',
-        salience: 0.8,
-        summary: 'I can see the stair to the front door.',
-        claims: [{ prop: 'stair-visible', value: true, confidence: 1 }],
-      },
-    ]);
+    mutatingHuman(g).observeStair(r.id, g.tick * 50 + 1);
     if (r.action === 'lost') r.action = 'wait';
     r.line = 'I can see the stair in your torchlight. Walk with me.';
     event(g, `${r.name}: ${r.line}`);
@@ -440,9 +429,52 @@ function speak(g: Game, input: Extract<Input, { type: 'speak' }>) {
   event(g, `${r.name}: ${r.line}`);
 }
 
+/** A tick publishes its world only after all HF receipts are accepted. */
 export function step(g: Game, input?: Input): void {
   if (g.phase !== 'playing') return;
+  // Events, logged inputs, resolutions and HF readings are immutable here.
+  // Copy only the containers this tick mutates; do not recopy their growing history.
+  const candidate: Game = {
+    ...g,
+    player: { ...g.player },
+    people: g.people.map((person) => ({
+      ...person,
+      hf: { ...person.hf, will: { ...person.hf.will } },
+    })),
+    smoke: [...g.smoke],
+    rescued: [...g.rescued],
+    log: [...g.log],
+    events: [...g.events],
+  };
+  const transaction: { token?: HumanTransaction } = {};
+  humanRuns.set(candidate, human(g));
+  transactions.set(candidate, transaction);
+  stagedWorlds.set(g, candidate);
+  try {
+    stepWorld(candidate, input);
+    // Keep public resident references stable for the renderer and controls.
+    const people = g.people;
+    const player = g.player;
+    candidate.people.forEach((person, index) => {
+      Object.assign(people[index]!, person);
+    });
+    Object.assign(player, candidate.player);
+    Object.assign(g, candidate, { people, player });
+  } catch (error) {
+    if (transaction.token) human(g).rollback(transaction.token);
+    throw error;
+  } finally {
+    stagedWorlds.delete(g);
+    transactions.delete(candidate);
+    humanRuns.delete(candidate);
+  }
+}
+function stepWorld(g: Game, input?: Input): void {
+  if (g.phase !== 'playing') return;
   g.tick++;
+  const h = human(g);
+  if (h.nextAt !== null && h.nextAt <= 370 * 60_000 + g.tick * 50)
+    syncHuman(g, mutatingHuman(g).advance(g.tick * 50));
   if (g.tick === 1) {
     for (const r of g.people) event(g, r.atHome ? `${r.name}: ${r.line}` : `${r.name} is away tonight.`);
     event(
@@ -460,9 +492,8 @@ export function step(g: Game, input?: Input): void {
     } else if (input.type === 'torch') g.torch = !g.torch;
     else if (input.type === 'speak') speak(g, input);
   }
-  // The fire started during the preceding minute. Settle that minute before rescue decisions.
+  // Count minute boundaries for diagnostics; HF itself advances in milliseconds.
   if (g.tick === 1 || g.tick % 1200 === 0) {
-    for (const r of g.people) humanTick(r.hf, START + Math.floor(g.tick / 1200));
     g.hfTicks++;
   }
   const period = 360;
@@ -503,9 +534,10 @@ export function step(g: Game, input?: Input): void {
       r.action = 'dead';
       r.line = 'Died from smoke inside before firefighters arrived.';
       event(g, `${r.name} died from smoke inside before firefighters arrived.`);
+      syncHuman(g, mutatingHuman(g).interrupt(r.id, g.tick * 50 + 3 + g.people.indexOf(r), 'died inside'));
       continue;
     }
-    if (r.action === 'books' && !r.booksReady) {
+    if (r.action === 'books' && h.active[r.id]?.actionId === 'books' && !r.booksReady) {
       r.taskTicks++;
       if (r.taskTicks >= 80) {
         r.booksReady = true;
@@ -514,26 +546,17 @@ export function step(g: Game, input?: Input): void {
         event(g, `${r.name}: ${r.line}`);
       }
     }
-    if (r.status === 'helping' && r.action === 'route') {
+    if (r.status === 'helping' && r.action === 'route' && h.active[r.id]?.actionId === 'route') {
       approach(r, 180, 450, 1.8);
       if (r.y >= 449) {
         g.routeFound = true;
         r.routeKnown = true;
-        perceive(r.hf, [
-          {
-            at: r.hf.now,
-            channel: 'saw',
-            kind: 'stair',
-            salience: 0.8,
-            summary: 'I can see the stair to the front door.',
-            claims: [{ prop: 'stair-visible', value: true, confidence: 1 }],
-          },
-        ]);
+        mutatingHuman(g).observeStair(r.id, g.tick * 50 + 1);
         r.status = 'waiting';
         event(g, 'Burak: I checked the stair to the front door. Cross when the smoke thins.');
         choose(g, r);
       }
-    } else if (r.status === 'helping' && r.action === 'help') {
+    } else if (r.status === 'helping' && r.action === 'help' && h.active[r.id]?.actionId === 'help') {
       const sevim = g.people[0]!;
       if (sevim.status === 'dead') {
         r.status = 'waiting';
@@ -558,7 +581,7 @@ export function step(g: Game, input?: Input): void {
           choose(g, r);
         }
       }
-    } else if (r.status === 'following') {
+    } else if (r.status === 'following' && h.active[r.id]?.actionId === 'follow') {
       // In a thick wave two followers stop where they stand until spoken to again: someone who has
       // never seen the stair, even in torchlight, and anyone HF marks as following under protest.
       // Showing an unknown stair clears that stop; a protested follower needs a new invitation in thin smoke.
@@ -570,13 +593,21 @@ export function step(g: Game, input?: Input): void {
           ? 'I cannot see you or the stair in this smoke. Show me the stair.'
           : 'I have stopped. You pushed me into thick smoke.';
         event(g, `${r.name}: ${r.line}`);
+        syncHuman(
+          g,
+          mutatingHuman(g).interrupt(r.id, g.tick * 50 + 3 + g.people.indexOf(r), 'stopped in smoke'),
+        );
         continue;
       }
       // HF marks compliance under protest; a pushed follower walks slowly.
       if (distance(r, g.player) > 24 || g.player.y >= 435)
         approach(r, g.player.x, g.player.y, r.hf.activity?.protest ? 1 : 1.7);
-    } else if (r.status === 'escaping') approach(r, 180, 450, 1.7);
-    if ((r.status === 'following' || r.status === 'escaping') && r.y >= 435) {
+    } else if (r.status === 'escaping' && h.active[r.id]?.actionId === 'escape') approach(r, 180, 450, 1.7);
+    if (
+      ((r.status === 'following' && h.active[r.id]?.actionId === 'follow') ||
+        (r.status === 'escaping' && h.active[r.id]?.actionId === 'escape')) &&
+      r.y >= 435
+    ) {
       r.exitMethod = r.status === 'following' ? 'escorted' : 'alone';
       r.status = 'safe';
       r.line =
@@ -595,15 +626,10 @@ export function step(g: Game, input?: Input): void {
               : 'I am outside. I could not have found the stair alone.';
       g.rescued.push(r.id);
       event(g, `${r.name} reached the street. ${r.name}: ${r.line}`);
-      if (r.hf.activity)
-        finish(r.hf, {
-          affordanceId: r.hf.activity.affordanceId,
-          action: r.hf.activity.action,
-          status: 'completed',
-          at: r.hf.now,
-          needs: { safety: 0.9 },
-          summary: 'Reached the front door safely.',
-        });
+      syncHuman(
+        g,
+        mutatingHuman(g).interrupt(r.id, g.tick * 50 + 3 + g.people.indexOf(r), 'reached the street'),
+      );
     }
   }
   // Stagger autonomous decisions: at most one resident per fixed tick.
@@ -637,9 +663,16 @@ export function step(g: Game, input?: Input): void {
     );
 }
 
+function canonicalState(g: Game): string {
+  return JSON.stringify(g, (_key, value) =>
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)))
+      : value,
+  );
+}
 export function stateHash(g: Game): string {
   let h = 2166136261;
-  const text = JSON.stringify(g);
+  const text = canonicalState(g);
   for (let i = 0; i < text.length; i++) {
     h ^= text.charCodeAt(i);
     h = Math.imul(h, 16777619);
@@ -648,7 +681,8 @@ export function stateHash(g: Game): string {
 }
 export function exportRun(g: Game): RunExport {
   return {
-    format: 'smoke-5',
+    format: 'smoke-6',
+    human: human(g).checkpoint(),
     engine: ENGINE,
     seed: g.seed,
     ticks: g.tick,
@@ -657,8 +691,31 @@ export function exportRun(g: Game): RunExport {
     hash: stateHash(g),
   };
 }
+export function restoreGame(run: RunExport): Game {
+  if (run?.format !== 'smoke-6' || run.engine !== ENGINE)
+    throw new Error('Unsupported Smoke replay version. Keep the file and start fresh.');
+  if (
+    !run.state ||
+    run.seed !== run.state.seed ||
+    run.ticks !== run.state.tick ||
+    !Array.isArray(run.inputs) ||
+    JSON.stringify(run.inputs) !== JSON.stringify(run.state.log) ||
+    stateHash(run.state) !== run.hash
+  )
+    throw new Error('Invalid Smoke game state.');
+  replayRun(run);
+  const game = structuredClone(run.state);
+  const restored = restoreHumanRun(run.human, actualFor(game));
+  if (run.human.archive.initial.spec.seed !== game.seed) throw new Error('Smoke seed mismatch.');
+  humanRuns.set(game, restored);
+  return game;
+}
 export function replayRun(run: RunExport): Game {
-  if (run.format !== 'smoke-5' || run.engine !== ENGINE) throw new Error('Unsupported Smoke replay version.');
+  if (run.format !== 'smoke-6' || run.engine !== ENGINE)
+    throw new Error('Unsupported Smoke replay version. Keep the file and start fresh.');
+  const verified = replayHuman(run.human.archive);
+  if (!verified.ok || !verified.value.verified || verified.value.fullHash !== run.human.archive.hashes.full)
+    throw new Error('HF replay hash mismatch.');
   if (!Number.isInteger(run.ticks) || run.ticks < 0 || run.ticks > 4000)
     throw new Error('Invalid replay length.');
   const g = createGame(run.seed);
@@ -668,7 +725,13 @@ export function replayRun(run: RunExport): Game {
     if (logged && logged.tick < t) throw new Error('Replay inputs are out of order.');
     step(g, logged?.tick === t ? run.inputs[index++]!.input : undefined);
   }
-  if (index !== run.inputs.length || stateHash(g) !== run.hash || stateHash(run.state) !== run.hash)
+  if (
+    index !== run.inputs.length ||
+    stateHash(g) !== run.hash ||
+    stateHash(run.state) !== run.hash ||
+    canonicalState(g) !== canonicalState(run.state) ||
+    JSON.stringify(human(g).checkpoint()) !== JSON.stringify(run.human)
+  )
     throw new Error('Replay hash mismatch.');
   return g;
 }

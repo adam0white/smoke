@@ -1,28 +1,26 @@
 import 'pixi.js/unsafe-eval';
 import { claimLabNotice, createLab } from '@adam0white/lab-client';
 import { Application, Container, Graphics, Text } from 'pixi.js';
+import { appendEvents } from './event-feed';
 import { readOutcome, readScreen } from './screen';
-import {
-  canSpeak,
-  createGame,
-  exportRun,
-  type Input,
-  type RunExport,
-  replayRun,
-  stateHash,
-  step,
-} from './sim';
+import { canSpeak, ENGINE, type Input, type RunExport } from './sim';
+import { Simulation, type SimulationSnapshot } from './simulation';
 import './style.css';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `<header><div class="brand">Lale Apartmanı · Istanbul<strong>Smoke on the Stairs</strong></div><button class="plain" id="menu" aria-label="Pause and open menu">≡</button></header><main class="stage"><aside class="stage-note"><b>06:10 · Istanbul</b>Find who is home.<br>Show them the stair.<br>Ask them to leave.</aside><div class="scene" id="scene" role="img" aria-label="Apartment stairwell. Tap a landing to walk. Tap a neighbour to select them."></div></main><section class="controls" aria-label="Neighbour and action controls"><p id="smoke-clock" class="smoke-clock" role="timer"></p><div class="event-feed" id="event-feed" role="log" aria-label="What everyone says and does" aria-live="polite" aria-relevant="additions"><ol id="events"></ol></div><p class="dialogue" id="line"></p><div class="people" id="people"></div><div class="actions"><button data-action="come">Come now<small>E</small></button><button data-action="books">The books<small>B</small></button><button data-action="together">Walk with me<small>T</small></button><button data-action="route">Show the stair<small>R</small></button><button data-action="torch">Torch<small>F</small></button></div><div class="walk"><button id="street">Street</button><p id="guidance" class="hint"></p></div><div class="sr-only" id="landings" aria-label="Walk to a landing"></div></section><div class="veil" id="overlay"></div>`;
 const lab = createLab({ game: 'smoke' });
+// A seed selects run data. Query strings never enable gameplay or diagnostics.
 const requestedSeed = new URLSearchParams(location.search).get('seed');
-let game = createGame(
-  requestedSeed !== null && /^\d+$/.test(requestedSeed) && Number(requestedSeed) <= 0xffffffff
-    ? Number(requestedSeed)
-    : crypto.getRandomValues(new Uint32Array(1))[0]!,
-);
+const simulation = new Simulation();
+let game = (
+  await simulation.request('reset', {
+    seed:
+      requestedSeed !== null && /^\d+$/.test(requestedSeed) && Number(requestedSeed) <= 0xffffffff
+        ? Number(requestedSeed)
+        : crypto.getRandomValues(new Uint32Array(1))[0]!,
+  })
+).game;
 let previous = game.people.map((p) => ({ x: p.x, y: p.y }));
 let previousPlayer = { ...game.player };
 let selected = game.people[0]!.id;
@@ -34,10 +32,21 @@ let accumulator = 0,
   lastFrame = 0;
 let replay: RunExport | null = null;
 let attempt = 0;
+let epoch = 0;
+let inflight = false;
+let resetting = false;
+let manualOperations = 0;
+let simulationError: string | undefined;
+let snapshotAt = performance.now();
 const pending: Input[] = [];
 const keys = new Set<string>();
 const frameSamples: number[] = [];
+const frameCosts: { simulation: number; drawing: number; rendering: number }[] = [];
+let afterSimulation = 0,
+  afterDrawing = 0;
 let frameStart = 0;
+let pendingSnapshotCost = 0;
+let frameSnapshotCost = 0;
 const overlay = document.querySelector<HTMLDivElement>('#overlay')!;
 const line = document.querySelector<HTMLParagraphElement>('#line')!;
 const eventList = document.querySelector<HTMLOListElement>('#events')!;
@@ -110,9 +119,17 @@ function label(text: string, x: number, y: number, size: number, color = ink) {
 }
 label('LALE APARTMANI', 107, 19, 10, paper);
 label('SOKAK / STREET', 122, 480, 8, 0xa7ae9b);
-const smoke = new Graphics();
+// Retain geometry. Only the puffs' transforms and opacity change during drawing.
+const smoke = new Container();
+const smokePuffs = Array.from({ length: 28 }, (_, index) => {
+  const floor = 1 + Math.floor(index / 7);
+  const j = index % 7;
+  const shape = new Graphics().ellipse(0, 0, 39, 15 + (j % 3) * 4).fill(0x556052);
+  smoke.addChild(shape);
+  return { floor, j, shape };
+});
 pixi.stage.addChild(smoke);
-const torch = new Graphics();
+const torch = new Graphics().poly([12, -17, -38, -123, 89, -105]).fill({ color: amber, alpha: 0.22 });
 pixi.stage.addChild(torch);
 const actorLayer = new Container();
 pixi.stage.addChild(actorLayer);
@@ -138,7 +155,7 @@ const figures = game.people.map((p, i) => {
   name.anchor.set(0.5, 0);
   name.position.set(0, 4);
   c.addChild(name);
-  const ring = new Graphics();
+  const ring = new Graphics().ellipse(0, 0, 15, 4).stroke({ color: coral, width: 1.5 });
   c.addChildAt(ring, 0);
   actorLayer.addChild(c);
   return { c, g, ring, name };
@@ -168,7 +185,6 @@ new ResizeObserver(() => {
 function setPaused(value: boolean) {
   paused = value;
   keys.clear();
-  pending.length = 0;
   accumulator = 0;
   lastFrame = 0;
   updateDOM();
@@ -220,13 +236,7 @@ function updateDOM() {
   const message = p.atHome ? `${p.name}: ${screen.dialogue}` : `${p.name} is away tonight.`;
   if (line.textContent !== message) line.textContent = message;
   const followingLatest = eventFeed.scrollHeight - eventFeed.scrollTop - eventFeed.clientHeight < 30;
-  while (eventCursor < game.events.length) {
-    const entry = game.events[eventCursor++]!;
-    const li = document.createElement('li');
-    li.textContent = entry.text;
-    li.dataset.tick = String(entry.tick);
-    eventList.append(li);
-  }
+  eventCursor = appendEvents(eventList, game.events, eventCursor);
   if (followingLatest) eventFeed.scrollTop = eventFeed.scrollHeight;
   for (const button of people.querySelectorAll('button')) {
     const resident = game.people.find((person) => person.id === button.dataset.id)!;
@@ -295,31 +305,49 @@ function showSheet(content: string) {
   queueMicrotask(() => overlay.querySelector<HTMLButtonElement>('button')?.focus());
 }
 function hideSheet() {
+  if (simulationError) return;
   overlay.hidden = true;
   setPaused(false);
   menuButton.focus();
 }
-function download() {
-  const blob = new Blob([JSON.stringify(exportRun(game), null, 2)], { type: 'application/json' }),
-    url = URL.createObjectURL(blob),
-    a = document.createElement('a');
-  a.href = url;
-  a.download = `smoke-${game.seed}.json`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+async function download() {
+  try {
+    const run = await simulation.request('export', {});
+    const blob = new Blob([JSON.stringify(run, null, 2)], { type: 'application/json' }),
+      url = URL.createObjectURL(blob),
+      a = document.createElement('a');
+    a.href = url;
+    a.download = `smoke-${run.seed}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    failSimulation(error, true);
+  }
 }
-function feedback(note: string) {
-  lab.openSendDialog({ note, getRun: () => exportRun(game), feedbackChoices: true });
+async function feedback(note: string) {
+  try {
+    const run = await simulation.request('export', {});
+    lab.openSendDialog({ note, getRun: () => run, feedbackChoices: true });
+  } catch (error) {
+    failSimulation(error, true);
+  }
 }
-function showMenu() {
+async function showMenu() {
+  if (simulationError) return;
+  const generation = epoch;
+  setPaused(true);
+  await simulation.fence();
+  if (generation !== epoch || ended || simulationError) return;
   showSheet(
-    `<div class="eyebrow">The night is paused</div><h2 id="sheet-title">Paused.</h2><button class="primary" id="resume">Keep going</button><button class="secondary" id="new-game">New game</button><div id="new-confirm" hidden><p>Start a new night? This ends the current night.</p><button class="secondary" id="confirm-new">Start new night</button><button class="secondary" id="cancel-new">Keep this night</button></div><button class="secondary" id="fullscreen">Full screen</button><a class="secondary" href="https://human.adamwhite.work/games/">All games</a><button class="secondary" id="stopping">I'm stopping</button><button class="secondary" id="confused">I'm confused</button><button class="secondary" id="export">Download this run</button><label><input id="recording" type="checkbox" ${lab.telemetryOn ? 'checked' : ''}>Record this play for the game lab</label><p class="minor">Recorded play is linked to other lab play on this device and kept for 180 days. <a href="https://human.adamwhite.work/lab/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a></p><p class="minor">Feedback opens a draft for you to review. Nothing is sent until you submit.</p><details><summary>Debug</summary><p class="minor">Seed ${game.seed} · Tick ${game.tick} · HF 3.2.0</p><button class="secondary" id="debug-replay">Check replay</button><p class="minor" id="debug-result"></p></details>`,
+    `<div class="eyebrow">The night is paused</div><h2 id="sheet-title">Paused.</h2><button class="primary" id="resume">Keep going</button><button class="secondary" id="new-game">New game</button><div id="new-confirm" hidden><p>Start a new night? This ends the current night.</p><button class="secondary" id="confirm-new">Start new night</button><button class="secondary" id="cancel-new">Keep this night</button></div><button class="secondary" id="fullscreen">Full screen</button><a class="secondary" href="https://human.adamwhite.work/games/">All games</a><button class="secondary" id="stopping">I'm stopping</button><button class="secondary" id="confused">I'm confused</button><button class="secondary" id="export">Download this run</button><label><input id="recording" type="checkbox" ${lab.telemetryOn ? 'checked' : ''}>Record this play for the game lab</label><p class="minor">Recorded play is linked to other lab play on this device and kept for 180 days. <a href="https://human.adamwhite.work/lab/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a></p><p class="minor">Feedback opens a draft for you to review. Nothing is sent until you submit.</p><details><summary>Debug</summary><p class="minor">Seed ${game.seed} · Tick ${game.tick} · HF ${ENGINE}</p><button class="secondary" id="debug-replay">Check replay</button><p class="minor" id="debug-result"></p></details>`,
   );
   document.querySelector('#new-game')!.addEventListener('click', () => {
     document.querySelector<HTMLElement>('#new-confirm')!.hidden = false;
     document.querySelector<HTMLButtonElement>('#confirm-new')!.focus();
   });
-  document.querySelector('#confirm-new')!.addEventListener('click', () => restart(true));
+  document.querySelector('#confirm-new')!.addEventListener('click', () => {
+    void restart(true).catch(failSimulation);
+  });
   document.querySelector('#cancel-new')!.addEventListener('click', () => {
     document.querySelector<HTMLElement>('#new-confirm')!.hidden = true;
     document.querySelector<HTMLButtonElement>('#new-game')!.focus();
@@ -334,12 +362,13 @@ function showMenu() {
   document.querySelector('#stopping')!.addEventListener('click', () => feedback("I'm stopping"));
   document.querySelector('#confused')!.addEventListener('click', () => feedback("I'm confused"));
   document.querySelector('#export')!.addEventListener('click', download);
-  document.querySelector('#debug-replay')!.addEventListener('click', () => {
+  document.querySelector('#debug-replay')!.addEventListener('click', async () => {
     const result = document.querySelector('#debug-result')!;
     try {
-      result.textContent = `Replay matches: ${stateHash(replayRun(exportRun(game)))}`;
-    } catch {
-      result.textContent = 'Replay did not match. Download this run for review.';
+      result.textContent = `Replay matches: ${await simulation.request('replayCheck', {})}`;
+    } catch (error) {
+      if (!simulation.available) failSimulation(error);
+      else result.textContent = 'Replay did not match. Download this run for review.';
     }
   });
   document.querySelector<HTMLInputElement>('#recording')!.onchange = (e) =>
@@ -348,13 +377,33 @@ function showMenu() {
 menuButton.onclick = showMenu;
 document.querySelector<HTMLButtonElement>('#street')!.onclick = () =>
   enqueue({ type: 'move', x: 180, y: 450 });
-function restart(newSeed = false) {
-  attempt++;
-  game = createGame(newSeed ? crypto.getRandomValues(new Uint32Array(1))[0]! : game.seed);
-  resetEvents();
-  previous = game.people.map((p) => ({ x: p.x, y: p.y }));
-  previousPlayer = { ...game.player };
+async function resetSimulation(seed: number, playback?: RunExport) {
+  const generation = ++epoch;
+  resetting = true;
   pending.length = 0;
+  accumulator = 0;
+  keys.clear();
+  const request = simulation.request('reset', { seed, replay: playback?.inputs });
+  try {
+    const snapshot = await request;
+    if (generation !== epoch) return false;
+    game = snapshot.game;
+    previous = snapshot.previous.people;
+    previousPlayer = snapshot.previous.player;
+    resetEvents();
+    snapshotAt = performance.now();
+    updateDOM();
+    return true;
+  } finally {
+    if (generation === epoch) resetting = false;
+  }
+}
+async function restart(newSeed = false) {
+  if (resetting) return;
+  for (const button of overlay.querySelectorAll<HTMLButtonElement>('button')) button.disabled = true;
+  attempt++;
+  setPaused(true);
+  if (!(await resetSimulation(newSeed ? crypto.getRandomValues(new Uint32Array(1))[0]! : game.seed))) return;
   ended = false;
   replaying = false;
   replay = null;
@@ -374,20 +423,31 @@ function showEnd() {
   showSheet(
     `<div class="eyebrow">${replaying ? 'Replay · ' : ''}The street, after the fire</div><h1 id="sheet-title">${outcome.heading}</h1><ol>${outcome.lines.map((line) => `<li>${line}</li>`).join('')}</ol><p class="minor">This night changes no other game. Try another order and see what they choose.</p><button class="primary" id="again">Try this night again</button>${replaying ? '' : '<button class="secondary" id="replay">Watch this run</button>'}<button class="secondary" id="end-export">Download this run</button><button class="secondary" id="end-feedback">Tell us about this night</button>`,
   );
-  document.querySelector('#again')!.addEventListener('click', () => restart());
-  document.querySelector('#replay')?.addEventListener('click', () => {
-    replay = exportRun(game);
-    attempt++;
-    game = createGame(replay.seed);
-    resetEvents();
-    previous = game.people.map((p) => ({ x: p.x, y: p.y }));
-    previousPlayer = { ...game.player };
-    pending.length = 0;
-    replaying = true;
-    ended = false;
-    hideSheet();
-    lab.screen('replay');
+  document.querySelector('#again')!.addEventListener('click', () => {
+    void restart().catch(failSimulation);
   });
+  document.querySelector('#replay')?.addEventListener('click', () => {
+    void watchReplay().catch(failSimulation);
+  });
+  async function watchReplay() {
+    if (resetting) return;
+    const generation = epoch;
+    resetting = true;
+    for (const button of overlay.querySelectorAll<HTMLButtonElement>('button')) button.disabled = true;
+    try {
+      replay = await simulation.request('export', {});
+      if (generation !== epoch) return;
+      attempt++;
+      if (!(await resetSimulation(replay.seed, replay))) return;
+      replaying = true;
+      ended = false;
+      hideSheet();
+      lab.screen('replay');
+    } finally {
+      // Once resetSimulation advances the epoch, it owns clearing its reset fence.
+      if (generation === epoch) resetting = false;
+    }
+  }
   document.querySelector('#end-export')!.addEventListener('click', download);
   document.querySelector('#end-feedback')!.addEventListener('click', () => feedback(''));
 }
@@ -449,38 +509,70 @@ pixi.canvas.addEventListener('webglcontextlost', (e) => {
   document.querySelector('#recover')!.addEventListener('click', () => location.reload());
   document.querySelector('#recover-export')!.addEventListener('click', download);
 });
-function advance() {
-  previous = game.people.map((p) => ({ x: p.x, y: p.y }));
-  previousPlayer = { ...game.player };
-  const dx = Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft')),
-    dy = Number(keys.has('s') || keys.has('arrowdown')) - Number(keys.has('w') || keys.has('arrowup'));
-  const input = replaying
-    ? replay?.inputs.find((entry) => entry.tick === game.tick + 1)?.input
-    : (pending.shift() ??
-      (dx || dy
-        ? { type: 'move' as const, x: game.player.x + dx * 30, y: game.player.y + dy * 85 }
-        : undefined));
-  step(game, input);
-  updateDOM();
-  if (game.phase !== 'playing' && !ended) showEnd();
+function heldMotion() {
+  return {
+    dx: Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft')),
+    dy: Number(keys.has('s') || keys.has('arrowdown')) - Number(keys.has('w') || keys.has('arrowup')),
+  };
 }
-function draw(alpha: number, time: number) {
-  smoke.clear();
-  for (let f = 1; f < 5; f++) {
-    const density = game.smoke[f] || 0;
-    for (let j = 0; j < 7; j++) {
-      const x = 60 + j * 39 + Math.sin(time * 0.0003 + j + f) * 9,
-        y = landings[f]! - 19 - Math.cos(time * 0.0004 + j) * 7;
-      smoke
-        .ellipse(x, y, 39, 15 + (j % 3) * 4)
-        .fill({ color: 0x556052, alpha: Math.min(0.7, density * 0.65) });
-    }
+function acceptSnapshot(snapshot: SimulationSnapshot, generation: number) {
+  const began = performance.now();
+  try {
+    if (generation !== epoch) return;
+    game = snapshot.game;
+    snapshotAt = performance.now();
+    previous = snapshot.previous.people;
+    previousPlayer = snapshot.previous.player;
+    updateDOM();
+    if (game.phase !== 'playing' && !ended) showEnd();
+  } finally {
+    pendingSnapshotCost += performance.now() - began;
   }
-  torch.clear();
+}
+function advance(ticks = 1): Promise<typeof game> {
+  if (!Number.isSafeInteger(ticks) || ticks < 0 || ticks > 4000)
+    return Promise.reject(new Error('Invalid simulation batch.'));
+  const generation = epoch;
+  const inputs = replaying ? [] : pending.splice(0, ticks);
+  // Submit synchronously: an export called immediately afterward fences behind this batch.
+  const request = simulation.request('advance', { ticks, inputs, held: heldMotion() });
+  manualOperations++;
+  return request
+    .then((snapshot) => {
+      acceptSnapshot(snapshot, generation);
+      return game;
+    })
+    .finally(() => {
+      manualOperations--;
+    });
+}
+function failSimulation(error: unknown, exportUnavailable = false) {
+  simulationError = error instanceof Error ? error.message : String(error);
+  setPaused(true);
+  const canExport = simulation.available && !exportUnavailable;
+  const message = canExport
+    ? 'Download this run for review, then reload to try again.'
+    : 'This run cannot be downloaded. Reload to start a fresh night.';
+  showSheet(
+    `<div class="eyebrow">Night paused</div><h2 id="sheet-title">The simulation stopped.</h2><p>${message}</p>${canExport ? '<button class="primary" id="simulation-export">Download this run</button>' : ''}<button class="secondary" id="simulation-reload">Reload</button>`,
+  );
+  document.querySelector('#simulation-export')?.addEventListener('click', download);
+  document.querySelector('#simulation-reload')!.addEventListener('click', () => location.reload());
+}
+let lastBannerKey = '';
+let lastBreath = Number.NaN;
+function draw(alpha: number, time: number) {
+  for (const { floor, j, shape } of smokePuffs) {
+    shape.position.set(
+      60 + j * 39 + Math.sin(time * 0.0003 + j + floor) * 9,
+      landings[floor]! - 19 - Math.cos(time * 0.0004 + j) * 7,
+    );
+    shape.alpha = Math.min(0.7, (game.smoke[floor] || 0) * 0.65);
+  }
   const px = previousPlayer.x + (game.player.x - previousPlayer.x) * alpha,
     py = previousPlayer.y + (game.player.y - previousPlayer.y) * alpha;
-  if (game.torch)
-    torch.poly([px + 12, py - 17, px - 38, py - 123, px + 89, py - 105]).fill({ color: amber, alpha: 0.22 });
+  torch.visible = game.torch;
+  torch.position.set(px, py);
   caretaker.position.set(px, py);
   caretaker.rotation = Math.sin(time * 0.012) * 0.018;
   game.people.forEach((p, i) => {
@@ -488,8 +580,7 @@ function draw(alpha: number, time: number) {
       old = previous[i] || p;
     f.c.visible = p.atHome && p.status !== 'safe' && p.status !== 'hospital' && p.status !== 'dead';
     f.c.position.set(old.x + (p.x - old.x) * alpha, old.y + (p.y - old.y) * alpha);
-    f.ring.clear();
-    if (p.id === selected) f.ring.ellipse(0, 0, 15, 4).stroke({ color: coral, width: 1.5 });
+    f.ring.visible = p.id === selected;
     f.c.rotation =
       p.status === 'following' || p.status === 'escaping' ? Math.sin(time * 0.01 + i) * 0.035 : 0;
   });
@@ -509,36 +600,49 @@ function draw(alpha: number, time: number) {
     figure.name.position.set(x - figure.c.x, y - figure.c.y);
     placed.push({ x, y, width });
   }
-  breathEdge.clear();
-  if (game.breath > 0.25)
-    breathEdge
-      .rect(0, 0, 360, 500)
-      .stroke({ width: 15 + game.breath * 20, color: 0x6c4536, alpha: game.breath * 0.3 });
+  if (game.breath !== lastBreath) {
+    lastBreath = game.breath;
+    breathEdge.clear();
+    if (game.breath > 0.25)
+      breathEdge
+        .rect(0, 0, 360, 500)
+        .stroke({ width: 15 + game.breath * 20, color: 0x6c4536, alpha: game.breath * 0.3 });
+  }
   const waveSeconds = Math.ceil(game.nextWaveTicks / 20);
-  // One continuous size, about 11 CSS px on screen; the short line only when the long one does not fit.
-  status.style.fontSize = Math.min(20, Math.max(9, 11 / canvasScale));
-  const [long, short] =
-    game.breath > 0.65
-      ? ['BREATH RUNNING LOW\nGO DOWN TO THE STREET', 'BREATH LOW · GO DOWN']
-      : game.wave === 'thick'
-        ? [
-            `THICK SMOKE · WAIT ON A LANDING\nTHINS IN ${waveSeconds} SECONDS`,
-            `THICK SMOKE · WAIT ${waveSeconds}s`,
-          ]
-        : [
-            `SMOKE THINS · MOVE DOWN THE STAIR\nTHICKENS IN ${waveSeconds} SECONDS`,
-            `MOVE · THICK IN ${waveSeconds}s`,
-          ];
-  status.text = long;
-  if (status.width > 330) status.text = short;
-  statusPlate.clear();
-  statusPlate
-    .roundRect(180 - status.width / 2 - 6, 49, status.width + 12, status.height + 6, 3)
-    .fill({ color: ink, alpha: 0.88 });
+  const bannerKey = `${canvasScale}:${waveSeconds}:${game.breath > 0.65 ? 'breath' : game.wave}`;
+  // Measuring the long line and then replacing it with the short line rerasterizes
+  // text. Fit the banner only when its actual content or size changes.
+  if (bannerKey !== lastBannerKey) {
+    lastBannerKey = bannerKey;
+    // One continuous size, about 11 CSS px on screen; the short line only when the long one does not fit.
+    status.style.fontSize = Math.min(20, Math.max(9, 11 / canvasScale));
+    const [long, short] =
+      game.breath > 0.65
+        ? ['BREATH RUNNING LOW\nGO DOWN TO THE STREET', 'BREATH LOW · GO DOWN']
+        : game.wave === 'thick'
+          ? [
+              `THICK SMOKE · WAIT ON A LANDING\nTHINS IN ${waveSeconds} SECONDS`,
+              `THICK SMOKE · WAIT ${waveSeconds}s`,
+            ]
+          : [
+              `SMOKE THINS · MOVE DOWN THE STAIR\nTHICKENS IN ${waveSeconds} SECONDS`,
+              `MOVE · THICK IN ${waveSeconds}s`,
+            ];
+    status.text = long;
+    if (status.width > 330) status.text = short;
+    statusPlate.clear();
+    statusPlate
+      .roundRect(180 - status.width / 2 - 6, 49, status.width + 12, status.height + 6, 3)
+      .fill({ color: ink, alpha: 0.88 });
+  }
 }
 pixi.ticker.add(
   () => {
     frameStart = performance.now();
+    // Worker replies apply snapshots between animation frames. Include that main-thread
+    // DOM work in the next frame's CPU sample; worker latency remains a separate metric.
+    frameSnapshotCost = pendingSnapshotCost;
+    pendingSnapshotCost = 0;
   },
   undefined,
   50,
@@ -550,24 +654,47 @@ pixi.ticker.add(() => {
   lastFrame = now;
   if (started && !paused) {
     accumulator += dt;
-    while (accumulator >= 50 && !paused) {
-      advance();
-      accumulator -= 50;
+    if (accumulator >= 50 && !inflight && !resetting && manualOperations === 0) {
+      const ticks = Math.min(2, Math.floor(accumulator / 50));
+      accumulator -= ticks * 50;
+      inflight = true;
+      void advance(ticks)
+        .catch(failSimulation)
+        .finally(() => {
+          inflight = false;
+        });
     }
   }
-  draw(paused ? 1 : accumulator / 50, now);
+  afterSimulation = performance.now();
+  draw(paused ? 1 : Math.min(1, (now - snapshotAt) / 50), now);
+  afterDrawing = performance.now();
 });
 pixi.ticker.add(
   () => {
-    frameSamples.push(performance.now() - frameStart);
-    if (frameSamples.length > 240) frameSamples.shift();
+    const end = performance.now();
+    frameSamples.push(end - frameStart + frameSnapshotCost);
+    frameCosts.push({
+      simulation: afterSimulation - frameStart + frameSnapshotCost,
+      drawing: afterDrawing - afterSimulation,
+      rendering: end - afterDrawing,
+    });
+    if (frameSamples.length > 240) {
+      frameSamples.shift();
+      frameCosts.shift();
+    }
   },
   undefined,
   -50,
 );
-lab.trackRun(() => ({ ...exportRun(game), playback: replaying }), {
-  runKey: () => `${attempt}:${replaying ? 'playback' : 'play'}`,
-});
+lab.trackRun(
+  async () => {
+    const playback = replaying;
+    return { ...(await simulation.request('export', {})), playback };
+  },
+  {
+    runKey: () => `${attempt}:${replaying ? 'playback' : 'play'}`,
+  },
+);
 resetEvents();
 let showNotice = await claimLabNotice();
 try {
@@ -589,17 +716,26 @@ document.querySelector('#start')!.addEventListener('click', () => {
 });
 Object.assign(window, {
   smoke: {
-    getState: () => game,
+    getState: () => structuredClone(game),
     enqueue: (input: Input) => {
       pending.push(input);
     },
-    exportRun: () => exportRun(game),
+    exportRun: () => simulation.request('export', {}),
     frameTimes: () => [...frameSamples],
-    replayCheck: () => stateHash(replayRun(exportRun(game))),
-    advance: (ticks = 1) => {
-      for (let n = 0; n < ticks && game.phase === 'playing'; n++) advance();
-      return game;
-    },
+    frameCosts: () => [...frameCosts],
+    replayCheck: () => simulation.request('replayCheck', {}),
+    workerMetrics: () => ({
+      ...simulation.metrics(),
+      backlogTicks: Math.floor(accumulator / 50),
+      inflight,
+      resetting,
+      simulationError,
+    }),
+    advance,
   },
 });
 updateDOM();
+
+window.addEventListener('pagehide', (event) => {
+  if (!event.persisted) simulation.dispose();
+});
