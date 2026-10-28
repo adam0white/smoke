@@ -16,7 +16,7 @@ Movement spends time. A shout can burn trust. Choosing how to answer Sevim costs
 
 ## Technology and HF
 
-PixiJS 8 WebGL renders a cut-paper stairwell at 60 fps. TypeScript 7 strict runs one deterministic simulation at 20 Hz on the main thread. HF 4.4.0 owns people, decisions, assent, voice trust, beliefs and bodily change through its public run API. The host owns positions, fire, authored speech, offered actions and actual world outcomes. Lab client 0.5.2 is consumed from its published release artifact.
+PixiJS 8 WebGL renders a cut-paper stairwell at 60 fps. TypeScript 7 strict runs one deterministic simulation at 20 Hz in a dedicated worker. The main thread renders committed snapshots. Worker requests preserve input order and fence exports and resets behind submitted ticks. HF 4.4.0 owns people, decisions, assent, voice trust, beliefs and bodily change through its public run API. The host owns positions, fire, authored speech, offered actions and actual world outcomes. Lab client 0.5.2 is consumed from its published release artifact.
 
 HF time uses integer milliseconds; each fixed game tick is 50 ms. Following is a sequence of finite walking intervals. An interval does not promise eventual rescue: HF must choose the next interval, and the host reports actual progress at its boundary. A resident reaches safety only when their world position reaches the street. Offers and suggestions retain stable identities and registered sources. The host settles each requested action before advancing and publishes staged world changes only after HF accepts their receipts.
 
@@ -26,7 +26,7 @@ Smoke and caretaker breath remain game hazards. Resident smoke exposure also bel
 
 Every gameplay feature is public. Query strings do not enable gameplay or diagnostics. The seed parameter selects the night’s data. Diagnostics remain in one collapsed Debug item beside lab privacy.
 
-Opus recommends the main thread; the concept prefers a Worker. We choose the main thread because four people do not justify an input round trip. Both reviews require persuasion, readable refusal, independent companion help, no canonical death, and actual partial outcomes. The first slice adopted those constraints. Iteration 4 follows the owner’s later permission for death in this possible night; all other agreed review changes remain. Astra proposes Cross Together as another game; it is outside this brief. The later stack trial confirmed direct PixiJS/HF integration and short-run deterministic replay at both sizes. This iteration keeps PixiJS because the faults are in the game design, not its rendering stack.
+The original slice chose the main thread for four people. During the HF 4.4.0 port, repeated CI runs exceeded the unchanged 16 ms frame CPU gate. Timing breakdowns identified simulation work. The port moves that work into a worker and separately checks committed ticks and backlog so smooth drawing cannot hide delayed simulation. Both reviews require persuasion, readable refusal, independent companion help, no canonical death, and actual partial outcomes. The first slice adopted those constraints. Iteration 4 follows the owner’s later permission for death in this possible night; all other agreed review changes remain. Astra proposes Cross Together as another game; it is outside this brief. The later stack trial confirmed direct PixiJS/HF integration and short-run deterministic replay at both sizes. This iteration keeps PixiJS because the faults are in the game design, not its rendering stack.
 
 ## Cast
 
