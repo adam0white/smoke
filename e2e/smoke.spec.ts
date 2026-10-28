@@ -151,7 +151,8 @@ test('Chromium frame CPU stays below16ms at fourfold slowdown', async ({ page, b
   test.skip(browserName !== 'chromium', 'Chromium CPU slowdown measurement');
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
-  await page.goto('/');
+  // Match the profiled workload: seed 4 has all four residents at home.
+  await page.goto('/?seed=4');
   await page.getByRole('button', { name: 'Enter the stairwell' }).click();
   await page.waitForTimeout(2500);
   const times = await page.evaluate(() =>

@@ -112,9 +112,17 @@ function label(text: string, x: number, y: number, size: number, color = ink) {
 }
 label('LALE APARTMANI', 107, 19, 10, paper);
 label('SOKAK / STREET', 122, 480, 8, 0xa7ae9b);
-const smoke = new Graphics();
+// Retain geometry. Only the puffs' transforms and opacity change during drawing.
+const smoke = new Container();
+const smokePuffs = Array.from({ length: 28 }, (_, index) => {
+  const floor = 1 + Math.floor(index / 7);
+  const j = index % 7;
+  const shape = new Graphics().ellipse(0, 0, 39, 15 + (j % 3) * 4).fill(0x556052);
+  smoke.addChild(shape);
+  return { floor, j, shape };
+});
 pixi.stage.addChild(smoke);
-const torch = new Graphics();
+const torch = new Graphics().poly([12, -17, -38, -123, 89, -105]).fill({ color: amber, alpha: 0.22 });
 pixi.stage.addChild(torch);
 const actorLayer = new Container();
 pixi.stage.addChild(actorLayer);
@@ -140,7 +148,7 @@ const figures = game.people.map((p, i) => {
   name.anchor.set(0.5, 0);
   name.position.set(0, 4);
   c.addChild(name);
-  const ring = new Graphics();
+  const ring = new Graphics().ellipse(0, 0, 15, 4).stroke({ color: coral, width: 1.5 });
   c.addChildAt(ring, 0);
   actorLayer.addChild(c);
   return { c, g, ring, name };
@@ -467,23 +475,19 @@ function advance() {
   if (game.phase !== 'playing' && !ended) showEnd();
 }
 let lastBannerKey = '';
+let lastBreath = Number.NaN;
 function draw(alpha: number, time: number) {
-  smoke.clear();
-  for (let f = 1; f < 5; f++) {
-    const density = game.smoke[f] || 0;
-    for (let j = 0; j < 7; j++) {
-      const x = 60 + j * 39 + Math.sin(time * 0.0003 + j + f) * 9,
-        y = landings[f]! - 19 - Math.cos(time * 0.0004 + j) * 7;
-      smoke
-        .ellipse(x, y, 39, 15 + (j % 3) * 4)
-        .fill({ color: 0x556052, alpha: Math.min(0.7, density * 0.65) });
-    }
+  for (const { floor, j, shape } of smokePuffs) {
+    shape.position.set(
+      60 + j * 39 + Math.sin(time * 0.0003 + j + floor) * 9,
+      landings[floor]! - 19 - Math.cos(time * 0.0004 + j) * 7,
+    );
+    shape.alpha = Math.min(0.7, (game.smoke[floor] || 0) * 0.65);
   }
-  torch.clear();
   const px = previousPlayer.x + (game.player.x - previousPlayer.x) * alpha,
     py = previousPlayer.y + (game.player.y - previousPlayer.y) * alpha;
-  if (game.torch)
-    torch.poly([px + 12, py - 17, px - 38, py - 123, px + 89, py - 105]).fill({ color: amber, alpha: 0.22 });
+  torch.visible = game.torch;
+  torch.position.set(px, py);
   caretaker.position.set(px, py);
   caretaker.rotation = Math.sin(time * 0.012) * 0.018;
   game.people.forEach((p, i) => {
@@ -491,8 +495,7 @@ function draw(alpha: number, time: number) {
       old = previous[i] || p;
     f.c.visible = p.atHome && p.status !== 'safe' && p.status !== 'hospital' && p.status !== 'dead';
     f.c.position.set(old.x + (p.x - old.x) * alpha, old.y + (p.y - old.y) * alpha);
-    f.ring.clear();
-    if (p.id === selected) f.ring.ellipse(0, 0, 15, 4).stroke({ color: coral, width: 1.5 });
+    f.ring.visible = p.id === selected;
     f.c.rotation =
       p.status === 'following' || p.status === 'escaping' ? Math.sin(time * 0.01 + i) * 0.035 : 0;
   });
@@ -512,11 +515,14 @@ function draw(alpha: number, time: number) {
     figure.name.position.set(x - figure.c.x, y - figure.c.y);
     placed.push({ x, y, width });
   }
-  breathEdge.clear();
-  if (game.breath > 0.25)
-    breathEdge
-      .rect(0, 0, 360, 500)
-      .stroke({ width: 15 + game.breath * 20, color: 0x6c4536, alpha: game.breath * 0.3 });
+  if (game.breath !== lastBreath) {
+    lastBreath = game.breath;
+    breathEdge.clear();
+    if (game.breath > 0.25)
+      breathEdge
+        .rect(0, 0, 360, 500)
+        .stroke({ width: 15 + game.breath * 20, color: 0x6c4536, alpha: game.breath * 0.3 });
+  }
   const waveSeconds = Math.ceil(game.nextWaveTicks / 20);
   const bannerKey = `${canvasScale}:${waveSeconds}:${game.breath > 0.65 ? 'breath' : game.wave}`;
   // Measuring the long line and then replacing it with the short line rerasterizes
