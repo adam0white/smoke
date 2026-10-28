@@ -35,25 +35,28 @@ with the same seed. **Watch this run** plays back the completed run.
 
 ## People and rescue rules
 
-[Human Framework](https://human.adamwhite.work) **3.2.0** supplies each person's
+[Human Framework](https://human.adamwhite.work) **4.4.0** supplies each person's
 state, needs, decisions, trust in your voice, and assent or refusal of requests.
 Smoke supplies the offered choices and their conditions, the words shown,
 movement, smoke, torchlight, time and breath limits, and rescue outcomes.
 PixiJS 8 draws the stairwell. The host advances at 20 fixed steps per second;
-HF settles the preceding minute on the first step, then advances each person's
-time once per simulated minute. The host models smoke exposure; this slice does
-not model sub-minute HF arousal or physiological smoke injury.
+HF uses integer milliseconds. Actions settle through the public run protocol.
+Walking uses finite intervals, with HF deciding whether to continue. The host
+models resident smoke exposure and caretaker breath as game hazards.
 
 ## Replay and privacy
 
-Downloads contain the seed, timed inputs, full game state, engine version and
-state hash. The source's `replayRun` rebuilds the run from the seed and inputs
-and checks the hash. It accepts the current `smoke-5` format with HF 3.2.0.
-Earlier exports require the earlier build. There is no file-import control. The pause menu has a collapsed **Debug** item with seed, tick and a replay check. Use `?seed=1` for a specific night; no lab flag is required.
+Downloads contain the seed, timed inputs, full game state, exact HF archive,
+engine version and state hash. The source's `replayRun` rebuilds Smoke from the
+seed and inputs and checks the complete export. HF archive replay separately
+checks the recorded HF transactions and full hash. This build accepts `smoke-6`
+with HF 4.4.0. Older exports require their original build; keep the file and
+start a fresh night here. There is no file-import control. Diagnostics are
+available in the pause menu’s collapsed **Debug** item without a query flag.
+The optional `seed` query parameter selects a night; it enables no feature.
 
 The lab client records play by default, including run snapshots and event/error
-logs, and attempts uploads. Smoke needs the central service update before these
-uploads and Feedback can be stored. Queued records are not storage receipts.
+logs, and attempts uploads. Queued records are not storage receipts.
 The Feedback dialog shows **Sent** only after the service confirms storage.
 Received records are private and kept for 180 days. Recording can link play
 across supported games in the same browser when shared identity is available.

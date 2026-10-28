@@ -1,3 +1,15 @@
+# HF 4.4.0 migration — 2026-10-27
+
+The candidate pins published HF 4.4.0 and the lab-client 0.5.2 release artifact. Current exports are smoke-6. Old files are refused with a keep-file/start-fresh message. A seed query selects run data; no gameplay or diagnostic query flag remains.
+
+The lane passes 43 tests. They include suggestion/refusal and pressure, seen-stair recovery, finite accepted movement, actual safety receipts, active-work continuation through completion, pending-request identity, read-only preview, strict host checkpoint validation, exact HF replay and complete game replay. Injecting an invalid outcome receipt proves that the complete world and HF checkpoint remain unchanged; the same tick then succeeds with a valid receipt. HF rollback replays accepted public transactions only. No framework internals or local belief/trust/body kernel is used.
+
+One headless seed-7 control compares silent, competent and visible-text play, with exact replay of each export. Silent play loses; competent and visible-text play win. The existing twenty-seed/six-policy measurement and its assertions remain available through `SMOKE_MEASUREMENT_PATH=... pnpm test src/sim-bots.test.ts`. Its historical HF 3.2.0 numbers below have not been remeasured on HF 4.4.0 and are not current claims.
+
+Local browser checks passed 22 cases, with two inapplicable WebKit CPU skips, then all four corrected loss/replay cases passed in Chromium and WebKit at phone and wide sizes. The loss assertion now reports actual individual status, including Burak's independent escape on HF 4.4.0. Chromium fourfold CPU p95 was 2.8 ms phone and 2.9 ms wide; maximum observed frames were 128.6/161.3 ms. These are local automated measurements, not physical-phone or human-playtest evidence. Exact CI and deployment receipts belong in the delivery report.
+
+Independent review found movement outliving accepted HF work, metadata publication before input acceptance, and chronological outcome/staging issues. Those findings were fixed; the reviewer found no remaining material code finding in the fixes. A stale HF3 design claim was corrected. The coordinator still owns panel acceptance.
+
 # Iteration 4 verification — 2026-10-26
 
 The owner allowed death in this possible night. Each resident accumulates local smoke exposure against a seeded per-person tolerance. Time spent inside and thicker smoke increase exposure. Warnings appear at half and three-quarters of the limit. Residents outside stop accumulating exposure. HF3.2.0 still owns decisions; the host owns the hazard.

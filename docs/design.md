@@ -4,7 +4,7 @@ A fire in Lale Apartmanı. You are the caretaker. Four neighbours can walk out. 
 
 ## What ends the work
 
-A complete small run, deterministic replay export, exact HF 3.2.0 pin, signed source, exact green CI, live release manifest, central listing ready, independent Codex review, and lab round 1 readiness. The coordinator owns the panel and retest. Adam accepts the new-games increment on 2026-11-03. This delivery does not claim panel acceptance.
+A complete small run, deterministic replay export, exact HF 4.4.0 pin, signed source, exact green CI, live release manifest, central listing ready, independent Codex review, and lab round 1 readiness. The coordinator owns the panel and retest. Adam accepts the new-games increment on 2026-11-03. This delivery does not claim panel acceptance.
 
 ## Win and loss
 
@@ -16,7 +16,15 @@ Movement spends time. A shout can burn trust. Choosing how to answer Sevim costs
 
 ## Technology and HF
 
-PixiJS 8 WebGL renders a cut-paper stairwell at 60 fps. TypeScript 7 strict runs one deterministic simulation at 20 Hz on the main thread. HF stays an imported 3.2.0 package. HF owns people, decisions, assent and voice trust. Host code owns positions, fire, visible speech, and offered actions. Inputs enter on a tick and replay without wall time. The current rules version exports as smoke-5 because resident hazard state and ending semantics change; older exports require their original build and are explicitly rejected by this build. HF settles the preceding minute on the first step, before any rescue can succeed, then ticks on minute boundaries. Route observations enter through HF perception. HF owns trust, need scoring, assent and refusal. The host does not simulate fast arousal; its smoke and caretaker breath are game hazards, not HF physiology. Resident smoke exposure also belongs to the host hazard. Each fixed tick adds the smoke density at the resident’s current floor. A per-seed, per-person tolerance of 850–1200 density-ticks determines when exposure becomes fatal. Outside residents stop accumulating exposure. This is a game rule, not a physiological model. Early evacuation remains possible; later and thicker smoke consumes more of that margin. The existing fast-response request remains with the all director.
+PixiJS 8 WebGL renders a cut-paper stairwell at 60 fps. TypeScript 7 strict runs one deterministic simulation at 20 Hz on the main thread. HF 4.4.0 owns people, decisions, assent, voice trust, beliefs and bodily change through its public run API. The host owns positions, fire, authored speech, offered actions and actual world outcomes. Lab client 0.5.2 is consumed from its published release artifact.
+
+HF time uses integer milliseconds; each fixed game tick is 50 ms. Following is a sequence of finite walking intervals. An interval does not promise eventual rescue: HF must choose the next interval, and the host reports actual progress at its boundary. A resident reaches safety only when their world position reaches the street. Offers and suggestions retain stable identities and registered sources. The host settles each requested action before advancing and publishes staged world changes only after HF accepts their receipts.
+
+Exports use smoke-6 and retain the seed, ordered timed game inputs, complete host state and exact HF archive with engine identity and hashes. HF replay and rebuilding Smoke from its input log are separate checks. Unsupported exports are refused with a keep-file/start-fresh message. This migration does not preserve 3.x numerical behavior or old exports.
+
+Smoke and caretaker breath remain game hazards. Resident smoke exposure also belongs to the host hazard. Each fixed tick adds the smoke density at the resident’s current floor. A per-seed, per-person tolerance of 850–1200 density-ticks determines when exposure becomes fatal. Outside residents stop accumulating exposure. This is a game rule, not a physiological model. Early evacuation remains possible; later and thicker smoke consumes more of that margin. No local body, trust or decision kernel substitutes for HF.
+
+Every gameplay feature is public. Query strings do not enable gameplay or diagnostics. The seed parameter selects the night’s data. Diagnostics remain in one collapsed Debug item beside lab privacy.
 
 Opus recommends the main thread; the concept prefers a Worker. We choose the main thread because four people do not justify an input round trip. Both reviews require persuasion, readable refusal, independent companion help, no canonical death, and actual partial outcomes. The first slice adopted those constraints. Iteration 4 follows the owner’s later permission for death in this possible night; all other agreed review changes remain. Astra proposes Cross Together as another game; it is outside this brief. The later stack trial confirmed direct PixiJS/HF integration and short-run deterministic replay at both sizes. This iteration keeps PixiJS because the faults are in the game design, not its rendering stack.
 
@@ -40,7 +48,7 @@ First test one moving companion and Sevim's refusal before expanding the run. Br
 - 2026-11-03: cross-game continuation remains deliberately absent; needs a separate reviewed decision.
 - 2026-11-03: HF fast response request review by the all director; no local framework substitute.
 
-## Route evidence rule — 2026-10-27
+## Historical HF 3.2.0 route evidence — 2026-10-27
 
 The coordinator rejected the torch-on, repeated Come now strategy that never shows the stair. Torchlight now lights the caretaker but does not establish a resident's route. A following resident who has not seen the stair stops during thick smoke, even with the torch on. The player can approach, show the stair, and invite them again. Thin smoke still permits following without route evidence. HF still owns assent, refusal and protest; this changes only the host's hazard and movement rule. Burak's independent stair check still establishes his own route.
 
@@ -56,4 +64,4 @@ The older policy named `careless` is an idle upper-floor exposure control, not t
 
 The targeted regression covers stopping with the torch on and recovery by showing the stair; the existing headless controls cover successful careful play. No panel or human playtest was run. Gameplay and seeded nights are public without `?lab`; the pause menu has one collapsed Debug item beside Lab privacy, with seed/tick and an exact replay check. The diagnostic browser API and bounded frame samples no longer require a query flag.
 
-HF remains pinned to 3.2.0 for this delivery. No bridge or HF decision code changed. A later builder applying `~/code/.lab-scratch/stale-patches/smoke-hf4-smoke.patch` must retain the new `stopsInSmoke` condition, stop/recovery copy, regression and strategy control when resolving its overlapping `src/sim.ts` changes, then remeasure on 4.0.1. The patch's old replay/engine stamps must not overwrite current-version replay checks. Current format is smoke-5; smoke-4 and older exports require their original build.
+That delivery used HF 3.2.0 and smoke-5. The measurements above are historical, not HF 4.4.0 results. The HF 4.4.0 bridge preserves the explicit stop/recovery rule. The focused lane uses one seed with silent, competent and visible-text controls; the historical twenty-seed measurement and its strategy assertions remain available through the command above. Current exports use smoke-6. Smoke-5 and older exports require their original builds; keep those files and start fresh here.

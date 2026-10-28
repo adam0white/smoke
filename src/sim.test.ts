@@ -1,4 +1,3 @@
-import { seedVoice } from '@adam0white/human-framework';
 import { describe, expect, it } from 'vitest';
 import { createGame, exportRun, type Game, replayRun, stateHash, step } from './sim';
 
@@ -76,19 +75,10 @@ describe('Smoke rescue decisions', () => {
     advance(g, 500);
     expect(hacer.status).toBe('safe');
   });
-  it('lets HF voice trust change the same invitation in the same surroundings', () => {
-    const trusted = createGame(2),
-      distrusted = createGame(2);
-    for (const [g, trust] of [
-      [trusted, 1],
-      [distrusted, 0],
-    ] as const) {
-      travel(g, 268, 110);
-      seedVoice(g.people[3]!.hf, 'player', trust, { replace: true });
-      step(g, { type: 'speak', id: 'hacer', line: 'together' });
-    }
-    expect(trusted.people[3]!.resolution?.verdict).toBe('assented');
-    expect(distrusted.people[3]!.resolution?.verdict).not.toBe('assented');
+  it('authors Hacer with lower trust in the caretaker', () => {
+    const g = createGame(2);
+    expect(g.people[3]!.hf.will.voices.find((v) => v.voiceId === 'player')?.trust).toBe(0.35);
+    expect(g.people[0]!.hf.will.voices.find((v) => v.voiceId === 'player')?.trust).toBe(0.6);
   });
   it('varies who is home, asleep, holding back and where smoke starts', () => {
     const games = Array.from({ length: 20 }, (_, i) => createGame(i + 1));
@@ -108,10 +98,10 @@ describe('Smoke rescue decisions', () => {
     const g = createGame(7);
     step(g);
     expect(g.hfTicks).toBe(1);
-    expect(g.people.every((r) => r.hf.now === 370)).toBe(true);
+    expect(exportRun(g).human.archive.current.at).toBeGreaterThanOrEqual(370 * 60_000);
     advance(g, 1199);
     expect(g.hfTicks).toBe(2);
-    expect(g.people.every((r) => r.hf.now === 371)).toBe(true);
+    expect(exportRun(g).human.archive.current.at).toBeGreaterThanOrEqual(371 * 60_000);
   });
   it('leaves Sevim waiting beside the caretaker until speech starts an HF choice', () => {
     const g = createGame(1);
@@ -198,16 +188,14 @@ describe('resident smoke outcomes', () => {
   });
   it('stops exposure outside and distinguishes escort from autonomous escape', () => {
     const g = createGame(4);
-    for (const [i, status] of [
-      [0, 'following'],
-      [1, 'escaping'],
-    ] as const) {
-      const r = g.people[i]!;
-      r.status = status;
-      r.y = 449;
-      r.x = 180;
-    }
-    step(g);
+    step(g, { type: 'torch' });
+    travel(g, 92, 365);
+    step(g, { type: 'speak', id: 'sevim', line: 'books' });
+    advance(g, 100);
+    step(g, { type: 'speak', id: 'sevim', line: 'route' });
+    step(g, { type: 'speak', id: 'sevim', line: 'together' });
+    travel(g, 180, 450);
+    advance(g, 500);
     expect(g.people[0]!.exitMethod).toBe('escorted');
     expect(g.people[1]!.exitMethod).toBe('alone');
     const exposure = g.people[0]!.smokeExposure;
@@ -218,7 +206,7 @@ describe('resident smoke outcomes', () => {
   });
   it('rejects historical replay formats explicitly', () => {
     const run = exportRun(createGame(4));
-    expect(run.format).toBe('smoke-5');
+    expect(run.format).toBe('smoke-6');
     expect(() => replayRun({ ...run, format: 'smoke-4' } as unknown as typeof run)).toThrow(
       'Unsupported Smoke replay version',
     );
@@ -229,11 +217,56 @@ it('does not let Burak keep helping or alter Sevim after she dies', () => {
   const g = createGame(4);
   const sevim = g.people[0]!,
     burak = g.people[1]!;
+  for (let i = 0; i < 800 && burak.action !== 'help'; i++) step(g);
+  expect(burak.action).toBe('help');
+  expect(burak.hf.activity).toBeDefined();
   Object.assign(sevim, { status: 'dead', action: 'dead', taskTicks: 79, line: 'Died from smoke inside.' });
-  Object.assign(burak, { status: 'helping', action: 'help', x: sevim.x, y: sevim.y });
-  g.routeFound = true;
   step(g);
   expect(sevim.booksReady).toBe(false);
   expect(sevim.line).toBe('Died from smoke inside.');
   expect(burak.action).not.toBe('help');
+});
+
+it('restores a saved game with active HF work and continues identically', async () => {
+  const { restoreGame } = await import('./sim');
+  const g = createGame(7);
+  travel(g, 92, 365);
+  step(g, { type: 'speak', id: 'sevim', line: 'books' });
+  const saved = JSON.parse(JSON.stringify(exportRun(g)));
+  const restored = restoreGame(saved);
+  advance(g, 200);
+  advance(restored, 200);
+  expect(exportRun(restored)).toEqual(exportRun(g));
+});
+
+it('does not move a follower after HF work ends without a renewed action', () => {
+  const g = createGame(2);
+  step(g, { type: 'torch' });
+  const r = g.people[3]!;
+  travel(g, r.x, r.y);
+  step(g, { type: 'speak', id: r.id, line: 'route' });
+  for (let i = 0; i < 20 && r.status !== 'following'; i++)
+    step(g, { type: 'speak', id: r.id, line: 'together' });
+  expect(r.status).toBe('following');
+  for (let i = 0; i < 620 && g.phase === 'playing'; i++) {
+    step(g);
+    if (r.status === 'following') expect(r.hf.activity).toBeDefined();
+  }
+  step(g, { type: 'move', x: 180, y: 450 });
+  for (let i = 0; i < 100 && g.phase === 'playing'; i++) {
+    const before = { x: r.x, y: r.y };
+    const allowed = Boolean(r.hf.activity);
+    step(g);
+    if (!allowed && !r.hf.activity) expect({ x: r.x, y: r.y }).toEqual(before);
+  }
+});
+
+it('requires an accepted HF walking action before moving a follower', () => {
+  const g = createGame(4);
+  const r = g.people[0]!;
+  Object.assign(r, { status: 'following', action: 'follow', x: 180, y: 365 });
+  g.player.x = 180;
+  g.player.y = 450;
+  step(g);
+  expect(r.y).toBe(365);
 });

@@ -112,13 +112,21 @@ test('keyboard climbs, export replays and a complete loss names the outcome', as
     window.smoke
       .getState()
       .people.filter((p) => p.atHome)
-      .map((p) => ({ name: p.name, status: p.status })),
+      .map((p) => ({ name: p.name, status: p.status, exitMethod: p.exitMethod })),
   );
   expect(people.some((p) => p.status === 'dead')).toBe(true);
   for (const person of people) {
     const line = page.getByRole('dialog').getByRole('listitem').filter({ hasText: person.name });
     await expect(line).toHaveCount(1);
-    await expect(line).toContainText(person.status === 'dead' ? 'died from smoke' : 'hospital');
+    await expect(line).toContainText(
+      person.status === 'dead'
+        ? 'died from smoke'
+        : person.status === 'hospital'
+          ? 'hospital'
+          : person.exitMethod === 'alone'
+            ? 'escaped alone'
+            : 'walked out with you',
+    );
   }
   await expect(page.getByRole('dialog')).not.toContainText(/Nobody died|made it out with you/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(

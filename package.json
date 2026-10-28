@@ -22,8 +22,8 @@
     "deploy": "pnpm build && pnpm exec wrangler deploy"
   },
   "dependencies": {
-    "@adam0white/human-framework": "3.2.0",
-    "@adam0white/lab-client": "file:vendor/adam0white-lab-client-0.4.15.tgz",
+    "@adam0white/human-framework": "4.4.0",
+    "@adam0white/lab-client": "file:vendor/adam0white-lab-client-0.5.2.tgz",
     "pixi.js": "8.16.0"
   },
   "devDependencies": {
