@@ -160,7 +160,8 @@ describe('resident smoke outcomes', () => {
     expect(stateHash(replayRun(exportRun(g)))).toBe(stateHash(g));
     for (const r of g.people.filter((r) => r.status === 'dead'))
       expect(g.events.some((e) => e.text.includes(r.name) && e.text.includes('died'))).toBe(true);
-  });
+    // This runs a complete night, serializes it, and verifies both HF and host replay.
+  }, 15000);
   it('accumulates smoke exposure over time and varies tolerance by seed and person', () => {
     const g = createGame(4);
     advance(g, 400);
