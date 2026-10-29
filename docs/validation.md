@@ -1,3 +1,5 @@
+The current candidate pins HF 4.8.0, lab client 0.5.5 and lab kit 0.5.22. Exports use smoke-7; older exports require their original build. The completed-night control serializes the complete export and compares the rebuilt host state and HF archive exactly; the seed-7 headless controls also verify each full replay hash. No historical 4.4.0 export is claimed to replay on this pin. Smoke has no portable-person continuation, and the pause menu links to the shared People across games shelf. Kit 0.5.22 needs a narrow peer-range override for client 0.5.5; kit 0.5.23 adds that peer range.
+
 # HF 4.4.0 migration — 2026-10-27
 
 The candidate pins published HF 4.4.0 and the lab-client 0.5.2 release artifact. Current exports are smoke-6. Old files are refused with a keep-file/start-fresh message. A seed query selects run data; no gameplay or diagnostic query flag remains.

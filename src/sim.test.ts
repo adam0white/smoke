@@ -157,7 +157,8 @@ describe('resident smoke outcomes', () => {
     advance(g, 3300);
     expect(g.people.some((r) => r.status === 'dead')).toBe(true);
     expect(g.phase).toBe('lost');
-    expect(stateHash(replayRun(exportRun(g)))).toBe(stateHash(g));
+    const run = JSON.parse(JSON.stringify(exportRun(g))) as ReturnType<typeof exportRun>;
+    expect(exportRun(replayRun(run))).toEqual(run);
     for (const r of g.people.filter((r) => r.status === 'dead'))
       expect(g.events.some((e) => e.text.includes(r.name) && e.text.includes('died'))).toBe(true);
     // This runs a complete night, serializes it, and verifies both HF and host replay.
@@ -207,8 +208,8 @@ describe('resident smoke outcomes', () => {
   });
   it('rejects historical replay formats explicitly', () => {
     const run = exportRun(createGame(4));
-    expect(run.format).toBe('smoke-6');
-    expect(() => replayRun({ ...run, format: 'smoke-4' } as unknown as typeof run)).toThrow(
+    expect(run.format).toBe('smoke-7');
+    expect(() => replayRun({ ...run, format: 'smoke-6' } as unknown as typeof run)).toThrow(
       'Unsupported Smoke replay version',
     );
   });

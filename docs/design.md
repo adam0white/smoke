@@ -4,7 +4,7 @@ A fire in Lale Apartmanı. You are the caretaker. Four neighbours can walk out. 
 
 ## What ends the work
 
-A complete small run, deterministic replay export, exact HF 4.4.0 pin, signed source, exact green CI, live release manifest, central listing ready, independent Codex review, and lab round 1 readiness. The coordinator owns the panel and retest. Adam accepts the new-games increment on 2026-11-03. This delivery does not claim panel acceptance.
+A complete small run, deterministic replay export, exact HF 4.8.0 pin, signed source, exact green CI, live release manifest, central listing ready, independent Codex review, and lab round 1 readiness. The coordinator owns the panel and retest. Adam accepts the new-games increment on 2026-11-03. This delivery does not claim panel acceptance.
 
 ## Win and loss
 
@@ -16,11 +16,11 @@ Movement spends time. A shout can burn trust. Choosing how to answer Sevim costs
 
 ## Technology and HF
 
-PixiJS 8 WebGL renders a cut-paper stairwell at 60 fps. TypeScript 7 strict runs one deterministic simulation at 20 Hz in a dedicated worker. The main thread renders committed snapshots. Worker requests preserve input order and fence exports and resets behind submitted ticks. HF 4.4.0 owns people, decisions, assent, voice trust, beliefs and bodily change through its public run API. The host owns positions, fire, authored speech, offered actions and actual world outcomes. Lab client 0.5.2 is consumed from its published release artifact.
+PixiJS 8 WebGL renders a cut-paper stairwell at 60 fps. TypeScript 7 strict runs one deterministic simulation at 20 Hz in a dedicated worker. The main thread renders committed snapshots. Worker requests preserve input order and fence exports and resets behind submitted ticks. HF 4.8.0 owns people, decisions, assent, voice trust, beliefs and bodily change through its public run API. The host owns positions, fire, authored speech, offered actions and actual world outcomes. Lab client 0.5.5 is consumed from its published release artifact.
 
 HF time uses integer milliseconds; each fixed game tick is 50 ms. Following is a sequence of finite walking intervals. An interval does not promise eventual rescue: HF must choose the next interval, and the host reports actual progress at its boundary. A resident reaches safety only when their world position reaches the street. Offers and suggestions retain stable identities and registered sources. The host settles each requested action before advancing and publishes staged world changes only after HF accepts their receipts.
 
-Exports use smoke-6 and retain the seed, ordered timed game inputs, complete host state and exact HF archive with engine identity and hashes. HF replay and rebuilding Smoke from its input log are separate checks. Unsupported exports are refused with a keep-file/start-fresh message. This migration does not preserve 3.x numerical behavior or old exports.
+Exports use smoke-7 and retain the seed, ordered timed game inputs, complete host state and exact HF archive with engine identity and hashes. HF replay and rebuilding Smoke from its input log are separate checks. Unsupported exports are refused with a keep-file/start-fresh message. This migration does not preserve 3.x numerical behavior or old exports.
 
 Smoke and caretaker breath remain game hazards. Resident smoke exposure also belongs to the host hazard. Each fixed tick adds the smoke density at the resident’s current floor. A per-seed, per-person tolerance of 850–1200 density-ticks determines when exposure becomes fatal. Outside residents stop accumulating exposure. This is a game rule, not a physiological model. Early evacuation remains possible; later and thicker smoke consumes more of that margin. No local body, trust or decision kernel substitutes for HF.
 

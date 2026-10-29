@@ -2,7 +2,7 @@ import { replay as replayHuman } from '@adam0white/human-framework';
 import { createHumanRun, restoreHumanRun } from './hf4';
 
 export const WORLD = { width: 360, height: 500, ground: 450, landings: [365, 280, 195, 110] } as const;
-export const ENGINE = '4.4.0';
+export const ENGINE = '4.8.0';
 export type Input =
   | { type: 'move'; x: number; y: number }
   | { type: 'speak'; id: string; line: 'come' | 'books' | 'together' | 'route' }
@@ -61,8 +61,8 @@ export interface Game {
   lastDecisionTick: number;
 }
 export interface RunExport {
-  format: 'smoke-6';
-  engine: '4.4.0';
+  format: 'smoke-7';
+  engine: '4.8.0';
   human: ReturnType<ReturnType<typeof createHumanRun>['checkpoint']>;
   seed: number;
   ticks: number;
@@ -681,7 +681,7 @@ export function stateHash(g: Game): string {
 }
 export function exportRun(g: Game): RunExport {
   return {
-    format: 'smoke-6',
+    format: 'smoke-7',
     human: human(g).checkpoint(),
     engine: ENGINE,
     seed: g.seed,
@@ -692,7 +692,7 @@ export function exportRun(g: Game): RunExport {
   };
 }
 export function restoreGame(run: RunExport): Game {
-  if (run?.format !== 'smoke-6' || run.engine !== ENGINE)
+  if (run?.format !== 'smoke-7' || run.engine !== ENGINE)
     throw new Error('Unsupported Smoke replay version. Keep the file and start fresh.');
   if (
     !run.state ||
@@ -711,7 +711,7 @@ export function restoreGame(run: RunExport): Game {
   return game;
 }
 export function replayRun(run: RunExport): Game {
-  if (run.format !== 'smoke-6' || run.engine !== ENGINE)
+  if (run.format !== 'smoke-7' || run.engine !== ENGINE)
     throw new Error('Unsupported Smoke replay version. Keep the file and start fresh.');
   const verified = replayHuman(run.human.archive);
   if (!verified.ok || !verified.value.verified || verified.value.fullHash !== run.human.archive.hashes.full)

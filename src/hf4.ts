@@ -32,7 +32,7 @@ export function smokeSpec(seed = 7): RunSpec {
     id: 'smoke',
     seed,
     start: START,
-    host: { id: 'world', edition: 'smoke-6', schema: 'smoke-6' },
+    host: { id: 'world', edition: 'smoke-7', schema: 'smoke-7' },
     definitions: {
       actions: ['wait', 'rest', 'follow', 'escape', 'books', 'route', 'help'].map((id) => ({
         id,
@@ -570,8 +570,8 @@ export function restoreHumanRun(data: unknown, actual?: (action: Active) => Actu
       (!Number.isSafeInteger(saved.nextAt) || saved.nextAt < saved.archive?.current?.at)) ||
     !saved.archive ||
     saved.archive.host?.id !== 'world' ||
-    saved.archive.host.edition !== 'smoke-6' ||
-    saved.archive.host.schema !== 'smoke-6'
+    saved.archive.host.edition !== 'smoke-7' ||
+    saved.archive.host.schema !== 'smoke-7'
   )
     throw new Error('Unsupported Smoke HF checkpoint. Keep the file and start fresh.');
   for (const object of [saved.revisions, saved.active, saved.books])

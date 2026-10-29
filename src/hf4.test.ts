@@ -5,7 +5,7 @@ import { createHumanRun, START } from './hf4';
 describe('HF4 game host', () => {
   it('creates an archive with the published engine and the authored cast', () => {
     const game = createHumanRun(7);
-    expect(game.archive().engine.package).toBe('@adam0white/human-framework@4.4.0');
+    expect(game.archive().engine.package).toBe('@adam0white/human-framework@4.8.0');
     expect(Object.keys(game.archive().current.people)).toHaveLength(4);
   });
 });
@@ -42,7 +42,7 @@ it('records a player suggestion in HF decision events', () => {
 it('records observed torchlight in the resident’s held belief', () => {
   const host = createHumanRun(1);
   host.observeStair('hacer', 1);
-  expect(host.beliefs('hacer').some((b) => b.prop === 'stair-visible' && b.logOdds > 0)).toBe(true);
+  expect(host.beliefs('hacer').some((b) => b.prop === 'stair-visible' && b.credence > 0.5)).toBe(true);
 });
 
 it('reads the authored player voice relation through HF inspection', () => {
