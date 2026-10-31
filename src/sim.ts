@@ -61,7 +61,7 @@ export interface Game {
   lastDecisionTick: number;
 }
 export interface RunExport {
-  format: 'smoke-7';
+  format: 'smoke-8';
   engine: '4.8.0';
   human: ReturnType<ReturnType<typeof createHumanRun>['checkpoint']>;
   seed: number;
@@ -576,6 +576,7 @@ function stepWorld(g: Game, input?: Input): void {
         sevim.taskTicks++;
         if (sevim.taskTicks >= 80 && !sevim.booksReady) {
           sevim.booksReady = true;
+          if (sevim.status === 'waiting' && sevim.action === 'books') sevim.action = 'wait';
           // Copy only: Sevim may already be outside, so she cannot ask to be led.
           if (sevim.status !== 'safe') {
             sevim.line = 'The bundle is tied. Show me the stair, then walk with me.';
@@ -687,7 +688,7 @@ export function stateHash(g: Game): string {
 }
 export function exportRun(g: Game): RunExport {
   return {
-    format: 'smoke-7',
+    format: 'smoke-8',
     human: human(g).checkpoint(),
     engine: ENGINE,
     seed: g.seed,
@@ -697,18 +698,30 @@ export function exportRun(g: Game): RunExport {
     hash: stateHash(g),
   };
 }
-export function restoreGame(run: RunExport): Game {
-  if (run?.format !== 'smoke-7' || run.engine !== ENGINE)
+function validateFormat(run: RunExport): void {
+  if (run?.format !== 'smoke-8' || run.engine !== ENGINE)
     throw new Error('Unsupported Smoke replay version. Keep the file and start fresh.');
+  if (!run.state || typeof run.state !== 'object') throw new Error('Invalid Smoke game state.');
+}
+function validateBindings(run: RunExport): void {
   if (
-    !run.state ||
+    !Number.isSafeInteger(run.seed) ||
+    run.seed < 0 ||
+    run.seed > 0xffffffff ||
     run.seed !== run.state.seed ||
+    !Number.isInteger(run.ticks) ||
+    run.ticks < 0 ||
+    run.ticks > 4000 ||
     run.ticks !== run.state.tick ||
     !Array.isArray(run.inputs) ||
     JSON.stringify(run.inputs) !== JSON.stringify(run.state.log) ||
     stateHash(run.state) !== run.hash
   )
     throw new Error('Invalid Smoke game state.');
+}
+export function restoreGame(run: RunExport): Game {
+  validateFormat(run);
+  validateBindings(run);
   replayRun(run);
   const game = structuredClone(run.state);
   const restored = restoreHumanRun(run.human, actualFor(game));
@@ -717,13 +730,11 @@ export function restoreGame(run: RunExport): Game {
   return game;
 }
 export function replayRun(run: RunExport): Game {
-  if (run.format !== 'smoke-7' || run.engine !== ENGINE)
-    throw new Error('Unsupported Smoke replay version. Keep the file and start fresh.');
+  validateFormat(run);
+  validateBindings(run);
   const verified = replayHuman(run.human.archive);
   if (!verified.ok || !verified.value.verified || verified.value.fullHash !== run.human.archive.hashes.full)
     throw new Error('HF replay hash mismatch.');
-  if (!Number.isInteger(run.ticks) || run.ticks < 0 || run.ticks > 4000)
-    throw new Error('Invalid replay length.');
   const g = createGame(run.seed);
   let index = 0;
   for (let t = 1; t <= run.ticks; t++) {

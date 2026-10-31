@@ -5,7 +5,7 @@ import { Application, Container, Graphics, Text } from 'pixi.js';
 import { appendEvents } from './event-feed';
 import { readOutcome, readScreen, readWalk } from './screen';
 import { arrived, canSpeak, ENGINE, type Input, type RunExport } from './sim';
-import { Simulation, type SimulationSnapshot } from './simulation';
+import { resetPayload, Simulation, type SimulationSnapshot } from './simulation';
 import './style.css';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -403,7 +403,7 @@ async function resetSimulation(seed: number, playback?: RunExport) {
   pending.length = 0;
   accumulator = 0;
   keys.clear();
-  const request = simulation.request('reset', { seed, replay: playback?.inputs });
+  const request = simulation.request('reset', resetPayload(seed, playback));
   try {
     const snapshot = await request;
     if (generation !== epoch) return false;

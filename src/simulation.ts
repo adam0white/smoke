@@ -1,4 +1,4 @@
-import type { Game, Input, LoggedInput, RunExport } from './sim';
+import type { Game, Input, RunExport } from './sim';
 
 export interface Motion {
   dx: number;
@@ -9,7 +9,7 @@ export interface SimulationSnapshot {
   previous: { people: { x: number; y: number }[]; player: Game['player'] };
 }
 export interface Commands {
-  reset: { seed: number; replay?: LoggedInput[] };
+  reset: { seed: number; replay?: RunExport };
   advance: { ticks: number; inputs: Input[]; held: Motion };
   export: Record<string, never>;
   replayCheck: Record<string, never>;
@@ -19,6 +19,10 @@ export interface Results {
   advance: SimulationSnapshot;
   export: RunExport;
   replayCheck: string;
+}
+/** Carry the complete export to the worker; the worker verifies it before reset. */
+export function resetPayload(seed: number, replay?: RunExport): Commands['reset'] {
+  return { seed, replay };
 }
 export type Request = {
   [K in keyof Commands]: { id: number; kind: K; payload: Commands[K] };
