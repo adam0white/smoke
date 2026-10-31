@@ -361,13 +361,19 @@ function refusal(r: Resident): string {
   return 'Give me a moment.';
 }
 
-function approach(p: { x: number; y: number }, x: number, y: number, speed: number) {
+export function approach(p: { x: number; y: number }, x: number, y: number, speed: number) {
   // Landing entry is horizontal. All floor changes use the central stair.
   if (Math.abs(p.y - y) > 1 && Math.abs(p.x - 180) > 1) x = 180;
   else if (Math.abs(p.y - y) > 1) x = 180;
   const moveX = Math.abs(p.x - x) > 0.01;
   if (moveX) p.x = rounded(p.x + Math.sign(x - p.x) * Math.min(Math.abs(x - p.x), speed));
   else p.y = rounded(p.y + Math.sign(y - p.y) * Math.min(Math.abs(y - p.y), speed));
+}
+
+/** Caretaker pixels per tick: the torch slows you, and so does thick smoke on your floor. */
+export function playerSpeed(g: Game): number {
+  const floor = Math.max(0, Math.min(4, Math.round((450 - g.player.y) / 85)));
+  return (g.torch ? 1.65 : 2.1) * (g.smoke[floor]! > 0.65 ? 0.45 : 1);
 }
 
 export function canSpeak(g: Game, id: string, line: Extract<Input, { type: 'speak' }>['line']): boolean {
@@ -512,12 +518,7 @@ function stepWorld(g: Game, input?: Input): void {
   );
   const floor = Math.max(0, Math.min(4, Math.round((450 - g.player.y) / 85)));
   const density = g.smoke[floor]!;
-  approach(
-    g.player,
-    g.player.targetX,
-    g.player.targetY,
-    (g.torch ? 1.65 : 2.1) * (density > 0.65 ? 0.45 : 1),
-  );
+  approach(g.player, g.player.targetX, g.player.targetY, playerSpeed(g));
   g.breath =
     Math.round(
       Math.max(

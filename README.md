@@ -10,7 +10,7 @@ to hospital. This night changes no other game. The pause menu links to **People 
 
 Choose **Enter the stairwell →** to start. Time passes while you play.
 
-- Tap a landing to walk there. Tap a neighbour or their name button to select
+- Tap a landing to walk there. A line under the controls says where you are, where the walk is going and about how long it takes at your current pace; a ring marks the destination. A new tap changes the destination and keeps your place. **Street** walks you to the street; anyone following you walks out when you are there. Tap a neighbour or their name button to select
   them and walk towards them. Speak when you are close.
 - Hold **WASD** or the **arrow keys** to move. Press **1–4** to select Sevim,
   Burak, Derya or Hacer, in that order, and walk towards them.

@@ -3,13 +3,13 @@ import { claimLabNotice, createLab } from '@adam0white/lab-client';
 import { PEOPLE_ACROSS_GAMES } from '@adam0white/lab-kit';
 import { Application, Container, Graphics, Text } from 'pixi.js';
 import { appendEvents } from './event-feed';
-import { readOutcome, readScreen } from './screen';
+import { readOutcome, readScreen, readWalk } from './screen';
 import { canSpeak, ENGINE, type Input, type RunExport } from './sim';
 import { Simulation, type SimulationSnapshot } from './simulation';
 import './style.css';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
-app.innerHTML = `<header><div class="brand">Lale Apartmanı · Istanbul<strong>Smoke on the Stairs</strong></div><button class="plain" id="menu" aria-label="Pause and open menu">≡</button></header><main class="stage"><aside class="stage-note"><b>06:10 · Istanbul</b>Find who is home.<br>Show them the stair.<br>Ask them to leave.</aside><div class="scene" id="scene" role="img" aria-label="Apartment stairwell. Tap a landing to walk. Tap a neighbour to select them."></div></main><section class="controls" aria-label="Neighbour and action controls"><p id="smoke-clock" class="smoke-clock" role="timer"></p><div class="event-feed" id="event-feed" role="log" aria-label="What everyone says and does" aria-live="polite" aria-relevant="additions"><ol id="events"></ol></div><p class="dialogue" id="line"></p><div class="people" id="people"></div><div class="actions"><button data-action="come">Come now<small>E</small></button><button data-action="books">The books<small>B</small></button><button data-action="together">Walk with me<small>T</small></button><button data-action="route">Show the stair<small>R</small></button><button data-action="torch">Torch<small>F</small></button></div><div class="walk"><button id="street">Street</button><p id="guidance" class="hint"></p></div><div class="sr-only" id="landings" aria-label="Walk to a landing"></div></section><div class="veil" id="overlay"></div>`;
+app.innerHTML = `<header><div class="brand">Lale Apartmanı · Istanbul<strong>Smoke on the Stairs</strong></div><button class="plain" id="menu" aria-label="Pause and open menu">≡</button></header><main class="stage"><aside class="stage-note"><b>06:10 · Istanbul</b>Find who is home.<br>Show them the stair.<br>Ask them to leave.</aside><div class="scene" id="scene" role="img" aria-label="Apartment stairwell. Tap a landing to walk. Tap a neighbour to select them."></div></main><section class="controls" aria-label="Neighbour and action controls"><p id="smoke-clock" class="smoke-clock" role="timer"></p><div class="event-feed" id="event-feed" role="log" aria-label="What everyone says and does" aria-live="polite" aria-relevant="additions"><ol id="events"></ol></div><p class="dialogue" id="line"></p><div class="people" id="people"></div><div class="actions"><button data-action="come">Come now<small>E</small></button><button data-action="books">The books<small>B</small></button><button data-action="together">Walk with me<small>T</small></button><button data-action="route">Show the stair<small>R</small></button><button data-action="torch">Torch<small>F</small></button></div><div class="walk"><button id="street">Street</button><p id="guidance" class="hint"></p></div><p id="walk-status"></p><div class="sr-only" id="landings" aria-label="Walk to a landing"></div></section><div class="veil" id="overlay"></div>`;
 const lab = createLab({ game: 'smoke' });
 // A seed selects run data. Query strings never enable gameplay or diagnostics.
 const requestedSeed = new URLSearchParams(location.search).get('seed');
@@ -55,6 +55,7 @@ const eventFeed = document.querySelector<HTMLDivElement>('#event-feed')!;
 let eventCursor = 0;
 let lastDOMKey = '';
 const people = document.querySelector<HTMLDivElement>('#people')!;
+const walkStatus = document.querySelector<HTMLParagraphElement>('#walk-status')!;
 const menuButton = document.querySelector<HTMLButtonElement>('#menu')!;
 const landings = [450, 365, 280, 195, 110];
 const ink = 0x202521,
@@ -169,6 +170,22 @@ body.moveTo(-4, -5).lineTo(-6, 0).moveTo(4, -5).lineTo(7, 0).stroke({ width: 3, 
 body.moveTo(5, -20).lineTo(13, -16).stroke({ width: 3, color: ink });
 body.circle(14, -16, 2).fill(amber);
 caretaker.addChild(body);
+const you = new Text({
+  text: 'YOU',
+  style: {
+    fontFamily: 'DM Sans, sans-serif',
+    fontSize: 11,
+    fontWeight: '700',
+    fill: ink,
+    stroke: { color: amber, width: 4 },
+  },
+});
+you.anchor.set(0.5, 1);
+you.position.set(0, -38);
+caretaker.addChild(you);
+// Where the last tap is sending the caretaker; hidden once they arrive.
+const destination = new Graphics().ellipse(0, 0, 17, 5).stroke({ color: amber, width: 2.5 });
+actorLayer.addChild(destination);
 actorLayer.addChild(caretaker);
 const breathEdge = new Graphics();
 pixi.stage.addChild(breathEdge);
@@ -210,6 +227,8 @@ function updateDOM() {
   const screen = readScreen(game, selected);
   const clock = document.querySelector<HTMLElement>('#smoke-clock')!;
   if (clock.textContent !== screen.timer) clock.textContent = screen.timer;
+  const walkText = readWalk(game);
+  if (walkStatus.textContent !== walkText) walkStatus.textContent = walkText;
   // Walking changes positions every step, but DOM controls change only at
   // speaking range boundaries or after an event. Avoid rebuilding button text
   // and forcing layout on every 20 Hz simulation step.
@@ -575,6 +594,8 @@ function draw(alpha: number, time: number) {
   torch.visible = game.torch;
   torch.position.set(px, py);
   caretaker.position.set(px, py);
+  destination.visible = game.player.x !== game.player.targetX || game.player.y !== game.player.targetY;
+  destination.position.set(game.player.targetX, game.player.targetY);
   caretaker.rotation = Math.sin(time * 0.012) * 0.018;
   game.people.forEach((p, i) => {
     const f = figures[i]!,

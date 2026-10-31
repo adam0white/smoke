@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
-import { readOutcome, readScreen } from './screen';
-import { createGame, SEVIM_LEFT_BOOKS } from './sim';
+import { readOutcome, readScreen, readWalk } from './screen';
+import { createGame, SEVIM_LEFT_BOOKS, step } from './sim';
 
 it('shows every follower and stop reason, plus smoke and closure seconds', () => {
   const g = createGame(4);
@@ -70,4 +70,21 @@ it('gives a stopped resident a recovery instruction they can use', () => {
   r.routeKnown = true;
   expect(readScreen(g, r.id).people[3]!.status).toContain('Wait for thin smoke');
   expect(readScreen(g, r.id).available).not.toContain('route');
+});
+
+it('says where the caretaker is and where a landing tap is sending them', () => {
+  const g = createGame(1);
+  expect(readWalk(g)).toBe('You are at the street.');
+  step(g, { type: 'move', x: 180, y: 195 });
+  expect(readWalk(g)).toMatch(
+    /^You are on the stair between the street and landing 1\. Walking to landing 3 · about \d+ s at this pace\.$/,
+  );
+  for (let i = 0; i < 60; i++) step(g);
+  step(g, { type: 'move', x: 180, y: 450 });
+  expect(readWalk(g)).toMatch(/Walking to the street/);
+  for (let i = 0; i < 400; i++) step(g);
+  expect(readWalk(g)).toBe('You are at the street.');
+  step(g, { type: 'move', x: 180, y: 195 });
+  for (let i = 0; i < 400; i++) step(g);
+  expect(readWalk(g)).toBe('You are on landing 3.');
 });
