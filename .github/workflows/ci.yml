@@ -24,3 +24,11 @@ jobs:
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm e2e
+      - name: Retain Playwright failure evidence
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: playwright-failure-evidence
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

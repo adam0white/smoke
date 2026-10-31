@@ -147,7 +147,11 @@ describe('Smoke rescue decisions', () => {
     expect(exportRun(replayRun(JSON.parse(JSON.stringify(run))))).toEqual(run);
     const bad = structuredClone(run);
     bad.inputs[0]!.input = { type: 'move', x: 180, y: 110 };
-    expect(() => replayRun(bad)).toThrow('hash mismatch');
+    expect(() => replayRun(bad)).toThrow('Invalid Smoke game state.');
+    const rebound = structuredClone(bad);
+    rebound.state.log = structuredClone(rebound.inputs);
+    rebound.hash = stateHash(rebound.state);
+    expect(() => replayRun(rebound)).toThrow('Replay hash mismatch.');
   });
 });
 
@@ -208,7 +212,7 @@ describe('resident smoke outcomes', () => {
   });
   it('rejects historical replay formats explicitly', () => {
     const run = exportRun(createGame(4));
-    expect(run.format).toBe('smoke-7');
+    expect(run.format).toBe('smoke-8');
     expect(() => replayRun({ ...run, format: 'smoke-6' } as unknown as typeof run)).toThrow(
       'Unsupported Smoke replay version',
     );

@@ -49,9 +49,9 @@ models resident smoke exposure and caretaker breath as game hazards.
 Downloads contain the seed, timed inputs, full game state, exact HF archive,
 engine version and state hash. The source's `replayRun` rebuilds Smoke from the
 seed and inputs and checks the complete export. HF archive replay separately
-checks the recorded HF transactions and full hash. This build accepts `smoke-6`
-with HF 4.4.0. Older exports require their original build; keep the file and
-start a fresh night here. There is no file-import control. Diagnostics are
+checks the recorded HF transactions and full hash. New runs use `smoke-8` with HF 4.8.0.
+Other formats require their original build; keep the file and start a fresh
+night here. There is no file-import control. Diagnostics are
 available in the pause menu’s collapsed **Debug** item without a query flag.
 The optional `seed` query parameter selects a night; it enables no feature.
 

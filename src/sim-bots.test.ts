@@ -117,7 +117,7 @@ describe('seeded strategy control', () => {
       if (process.env.SMOKE_MEASUREMENT_PATH)
         writeFileSync(
           process.env.SMOKE_MEASUREMENT_PATH,
-          `${JSON.stringify({ engine: '4.8.0', replayFormat: 'smoke-7', measurements }, null, 2)}\n`,
+          `${JSON.stringify({ engine: '4.8.0', replayFormat: 'smoke-8', measurements }, null, 2)}\n`,
         );
       console.log(
         JSON.stringify({

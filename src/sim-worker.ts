@@ -24,8 +24,14 @@ scope.onmessage = ({ data }) => {
     let value: SimulationSnapshot | ReturnType<typeof exportRun> | string;
     switch (data.kind) {
       case 'reset': {
-        game = createGame(data.payload.seed);
-        replay = data.payload.replay;
+        const { seed, replay: source } = data.payload;
+        if (source) {
+          if (seed !== source.seed) throw new Error('Replay reset mismatch.');
+          replayRun(source);
+        }
+        const next = createGame(seed);
+        game = next;
+        replay = source?.inputs;
         replayIndex = 0;
         value = snapshot();
         break;

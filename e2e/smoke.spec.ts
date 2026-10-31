@@ -15,6 +15,7 @@ type Smoke = {
     queuedRequests: number;
     latencySamples: number[];
     backlogTicks: number;
+    resetting: boolean;
     simulationError?: string;
   };
 };
@@ -93,8 +94,10 @@ test('speech is contextual, all events persist, and pause has navigation', async
   expect(errors).toEqual([]);
 });
 
-test('keyboard climbs, export replays and a complete loss names the outcome', async ({ page }) => {
+test('keyboard climbs, export replays and a complete loss names the outcome', async ({ page }, testInfo) => {
   test.setTimeout(60000);
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
   await page.goto('/?seed=4');
   await expect(page.getByText('People left inside may die.')).toBeVisible();
   await page.getByRole('button', { name: 'Enter the stairwell' }).click();
@@ -135,7 +138,53 @@ test('keyboard climbs, export replays and a complete loss names the outcome', as
   expect(result.hash).toBe(result.replay);
   const original = await page.evaluate(() => window.smoke.exportRun());
   await page.getByRole('button', { name: 'Watch this run', exact: true }).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  const watchWaitStarted = performance.now();
+  try {
+    // Hosted replay checks took 5.6–5.7s; retain a bounded completion wait and exact export below.
+    await expect
+      .poll(
+        async () => {
+          const dialog = page.getByRole('dialog', { includeHidden: true });
+          const [dialogCount, dialogVisible, metrics] = await Promise.all([
+            dialog.count(),
+            dialog.isVisible(),
+            page.evaluate(() => window.smoke.workerMetrics()),
+          ]);
+          return {
+            dialogCount,
+            dialogVisible,
+            resetting: metrics.resetting,
+            simulationError: metrics.simulationError ?? null,
+          };
+        },
+        { timeout: 10000 },
+      )
+      .toEqual({ dialogCount: 1, dialogVisible: false, resetting: false, simulationError: null });
+  } catch (error) {
+    const postClickWaitMs = performance.now() - watchWaitStarted;
+    const snapshot = await Promise.race([
+      page
+        .evaluate(() => ({
+          dialog: document.querySelector('[role=dialog]')?.textContent ?? null,
+          workerMetrics: window.smoke.workerMetrics(),
+        }))
+        .catch((failure: unknown) => ({ error: String(failure) })),
+      new Promise<{ error: string }>((resolve) =>
+        setTimeout(() => resolve({ error: 'snapshot timed out' }), 1000),
+      ),
+    ]);
+    await testInfo
+      .attach('watch-failure', {
+        body: JSON.stringify({ postClickWaitMs, snapshot, pageErrors }, null, 2),
+        contentType: 'application/json',
+      })
+      .catch(() => undefined);
+    throw error;
+  }
+  await testInfo.attach('watch-ready', {
+    body: JSON.stringify({ postClickWaitMs: performance.now() - watchWaitStarted }, null, 2),
+    contentType: 'application/json',
+  });
   await page.evaluate(() => window.smoke.advance(3300));
   await expect(page.getByRole('heading', { name: /Everyone is out|walked out with you/ })).toBeVisible();
   const watched = await page.evaluate(() => window.smoke.exportRun());
