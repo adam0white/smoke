@@ -1,4 +1,13 @@
-import { canSpeak, type Game, type Resident, SEVIM_LEFT_BOOKS } from './sim';
+import {
+  approach,
+  arrived,
+  canSpeak,
+  type Game,
+  playerSpeed,
+  type Resident,
+  SEVIM_LEFT_BOOKS,
+  WORLD,
+} from './sim';
 
 export const speech = ['come', 'books', 'together', 'route'] as const;
 function movementStatus(g: Game, r: Resident): string {
@@ -34,6 +43,34 @@ export function residentStatus(g: Game, r: Resident): string {
   if (r.smokeExposure >= r.smokeTolerance * 0.5) return `${status} · Smoke is making breathing difficult.`;
   return status;
 }
+const spot = (floor: number) => (floor ? `landing ${floor}` : 'the street');
+/** Where the caretaker is, where the last tap sent them, and how long that walk takes at the current pace. */
+export function readWalk(g: Game): string {
+  if (g.phase !== 'playing') return '';
+  const { x, y, targetX, targetY } = g.player;
+  const above = (450 - y) / 85;
+  const here = Math.abs(y - (WORLD.ground - Math.round(above) * 85)) < 1 ? Math.round(above) : -1;
+  let text =
+    here >= 0
+      ? `You are ${here ? 'on' : 'at'} ${spot(here)}.`
+      : `You are on the stair between ${spot(Math.floor(above))} and ${spot(Math.ceil(above))}.`;
+  if (!arrived(g.player, targetX, targetY)) {
+    const walker = { x, y };
+    let ticks = 0;
+    while (!arrived(walker, targetX, targetY) && ticks < 3000) {
+      const { x: wx, y: wy } = walker;
+      approach(walker, targetX, targetY, playerSpeed(g));
+      if (walker.x === wx && walker.y === wy) break;
+      ticks++;
+    }
+    const slow = playerSpeed(g) < (g.torch ? 1.65 : 2.1);
+    const eta = arrived(walker, targetX, targetY) ? ` · about ${Math.ceil(ticks / 20)} s at this pace` : '';
+    text += ` Walking to ${spot(Math.round((WORLD.ground - targetY) / 85))}${eta}.${slow ? ' Thick smoke slows you.' : ''}`;
+  }
+  if (y >= 435 && g.people.some((r) => r.status === 'following'))
+    text += ' Anyone still following you walks out here.';
+  return text;
+}
 export function readOutcome(g: Game) {
   const home = g.people.filter((r) => r.atHome);
   const escorted = home.filter((r) => r.exitMethod === 'escorted').length;
@@ -55,7 +92,8 @@ export function readScreen(g: Game, selected: string) {
   const available = speech.filter((action) => canSpeak(g, selected, action));
   let guidance = 'Tap a name to approach. Grey speech buttons need you nearby.';
   if (r.status === 'following')
-    guidance = 'Lead your followers down: tap Street. They keep following until they are outside.';
+    guidance =
+      'Tap Street to walk to the street yourself. Followers walk after you, but thick smoke can stop them.';
   else if (r.atHome && r.status === 'waiting') {
     if (r.action === 'books') guidance = 'Wait while the bundle is tied.';
     else if (!available.length) guidance = `Tap ${r.name} to approach. Speech becomes available nearby.`;

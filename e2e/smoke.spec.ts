@@ -333,3 +333,35 @@ test('worker batches export the exact direct-core replay and reset starts fresh'
   expect(fresh.ticks).toBeLessThan(20);
   expect(exportRun(replayRun(fresh))).toEqual(fresh);
 });
+
+test.describe('a landing tap', () => {
+  test.use({ hasTouch: true });
+  test('walks the caretaker there, says so, and a second tap retargets without resetting progress', async ({
+    page,
+  }, info) => {
+    await page.goto('/?seed=1');
+    await page.getByRole('button', { name: 'Enter the stairwell' }).click();
+    const canvas = page.locator('canvas');
+    const box = (await canvas.boundingBox())!;
+    const tapLanding = (y: number) => {
+      const position = { x: (250 * box.width) / 360, y: (y * box.height) / 500 };
+      return info.project.name.endsWith('phone') ? canvas.tap({ position }) : canvas.click({ position });
+    };
+    const walk = page.locator('#walk-status');
+    await tapLanding(280);
+    await page.evaluate(() => window.smoke.advance(1));
+    expect(await page.evaluate(() => window.smoke.getState().player.targetY)).toBe(280);
+    await expect(walk).toContainText('Walking to landing 2');
+    await page.evaluate(() => window.smoke.advance(60));
+    const climbed = await page.evaluate(() => window.smoke.getState().player.y);
+    expect(climbed).toBeLessThan(450);
+    await tapLanding(110);
+    await page.evaluate(() => window.smoke.advance(1));
+    expect(await page.evaluate(() => window.smoke.getState().player.y)).toBeLessThanOrEqual(climbed);
+    await expect(walk).toContainText('Walking to landing 4');
+    if (process.env.SMOKE_SHOT_DIR)
+      await page.screenshot({ path: `${process.env.SMOKE_SHOT_DIR}/${info.project.name}.png` });
+    await page.evaluate(() => window.smoke.advance(1200));
+    await expect(walk).toHaveText('You are on landing 4.');
+  });
+});

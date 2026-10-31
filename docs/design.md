@@ -36,12 +36,19 @@ Hacer (58), Burak (31), Sevim (69), Derya (44), using their canonical identities
 
 At 360×690 the building occupies the space above a separate bottom thumb area. A tap on a landing moves; a tap on a figure selects. Speech buttons remain below the figures. Keyboard at 1280×800 uses arrows/WASD, selection and speech shortcuts. A focused line makes the person's reason explicit; hesitation alone is insufficient. Iteration 3 adds a visible Street button, a current status under every name, and DOM text for smoke-wave and closure timing. Following means walk toward the caretaker, then wait beside them until the caretaker moves. The screen tells the player to lead followers to the street. Feedback pauses. Background tabs do not accrue simulation catch-up.
 
+## Walk cue (2026-10-31)
+
+The first LIGHT panel could not tell whether a landing tap had registered. Native pointer taps already set the walk target on phone and desktop; the screen did not say so. A line under the controls now states where the caretaker is, where the last tap sends them and the time left at the current speed (thick smoke slows it, and the line says so). A ring marks the destination and the caretaker carries a YOU label. A second tap only changes the destination; it never restarts the walk. Followers walk to the caretaker, so they leave when the caretaker is at the street; the line says this. Speed, clock and difficulty are unchanged.
+
 ## Evidence gates
 
 First test one moving companion and Sevim's refusal before expanding the run. Browser checks must show her stated reason and an available response. That is a readability proxy; only actual panel play can establish whether players understand and change action. Measure Chromium under 4× CPU slowdown and report the actual frame distribution. Do not call an automated proxy human evidence.
 
 ## Deferred
 
+- 2026-11-10: preferences from the first LIGHT panel, not mechanism faults: faster walk, longer clock, richer death narration, per-person numeric clocks, an empty Feedback draft with an extra Back button, hiding key letters on the phone. Walk speed, clock and difficulty change only after a separate C14 human-speed comparison.
+- 2026-11-10: whether "Show the stair" should unlock the instant a neighbour says she is ready (unproved), and one-tap approach (selection stays two-step; no automatic compliance).
+- 2026-11-03: source/input clarification of stable neighbour button names while aiming, asked by Jonas (F-2377) and Marta (F-2389); stale accessible names and tool latency stay qualified, not a broken-pointer claim. Needs source/input clarification before any change.
 - 2026-11-03: panel observation of refusal readability and whether players change action; coordinator owns panel.
 - 2026-11-03: longer six-minute run and sound, after the short run proves persuasion.
 - 2026-11-03: carrying a downed person, only if it improves this game without turning people into cargo.
