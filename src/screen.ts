@@ -1,4 +1,13 @@
-import { approach, canSpeak, type Game, playerSpeed, type Resident, SEVIM_LEFT_BOOKS, WORLD } from './sim';
+import {
+  approach,
+  arrived,
+  canSpeak,
+  type Game,
+  playerSpeed,
+  type Resident,
+  SEVIM_LEFT_BOOKS,
+  WORLD,
+} from './sim';
 
 export const speech = ['come', 'books', 'together', 'route'] as const;
 function movementStatus(g: Game, r: Resident): string {
@@ -45,18 +54,21 @@ export function readWalk(g: Game): string {
     here >= 0
       ? `You are ${here ? 'on' : 'at'} ${spot(here)}.`
       : `You are on the stair between ${spot(Math.floor(above))} and ${spot(Math.ceil(above))}.`;
-  if (Math.abs(x - targetX) > 0.01 || Math.abs(y - targetY) > 0.01) {
+  if (!arrived(g.player, targetX, targetY)) {
     const walker = { x, y };
     let ticks = 0;
-    while ((walker.x !== targetX || walker.y !== targetY) && ticks < 3000) {
+    while (!arrived(walker, targetX, targetY) && ticks < 3000) {
+      const { x: wx, y: wy } = walker;
       approach(walker, targetX, targetY, playerSpeed(g));
+      if (walker.x === wx && walker.y === wy) break;
       ticks++;
     }
     const slow = playerSpeed(g) < (g.torch ? 1.65 : 2.1);
-    text += ` Walking to ${spot(Math.round((WORLD.ground - targetY) / 85))} · about ${Math.ceil(ticks / 20)} s at this pace.${slow ? ' Thick smoke slows you.' : ''}`;
+    const eta = arrived(walker, targetX, targetY) ? ` · about ${Math.ceil(ticks / 20)} s at this pace` : '';
+    text += ` Walking to ${spot(Math.round((WORLD.ground - targetY) / 85))}${eta}.${slow ? ' Thick smoke slows you.' : ''}`;
   }
   if (y >= 435 && g.people.some((r) => r.status === 'following'))
-    text += ' Anyone following you walks out here.';
+    text += ' Anyone still following you walks out here.';
   return text;
 }
 export function readOutcome(g: Game) {
@@ -81,7 +93,7 @@ export function readScreen(g: Game, selected: string) {
   let guidance = 'Tap a name to approach. Grey speech buttons need you nearby.';
   if (r.status === 'following')
     guidance =
-      'Tap Street to walk to the street yourself. Followers keep following you until they are outside.';
+      'Tap Street to walk to the street yourself. Followers walk after you, but thick smoke can stop them.';
   else if (r.atHome && r.status === 'waiting') {
     if (r.action === 'books') guidance = 'Wait while the bundle is tied.';
     else if (!available.length) guidance = `Tap ${r.name} to approach. Speech becomes available nearby.`;

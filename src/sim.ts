@@ -370,6 +370,11 @@ export function approach(p: { x: number; y: number }, x: number, y: number, spee
   else p.y = rounded(p.y + Math.sign(y - p.y) * Math.min(Math.abs(y - p.y), speed));
 }
 
+/** True once `approach` can no longer move this far: its own 0.01 px tolerance on both axes. */
+export function arrived(p: { x: number; y: number }, x: number, y: number): boolean {
+  return Math.abs(p.x - x) <= 0.01 && Math.abs(p.y - y) <= 0.01;
+}
+
 /** Caretaker pixels per tick: the torch slows you, and so does thick smoke on your floor. */
 export function playerSpeed(g: Game): number {
   const floor = Math.max(0, Math.min(4, Math.round((450 - g.player.y) / 85)));

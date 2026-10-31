@@ -4,7 +4,7 @@ import { PEOPLE_ACROSS_GAMES } from '@adam0white/lab-kit';
 import { Application, Container, Graphics, Text } from 'pixi.js';
 import { appendEvents } from './event-feed';
 import { readOutcome, readScreen, readWalk } from './screen';
-import { canSpeak, ENGINE, type Input, type RunExport } from './sim';
+import { arrived, canSpeak, ENGINE, type Input, type RunExport } from './sim';
 import { Simulation, type SimulationSnapshot } from './simulation';
 import './style.css';
 
@@ -594,7 +594,7 @@ function draw(alpha: number, time: number) {
   torch.visible = game.torch;
   torch.position.set(px, py);
   caretaker.position.set(px, py);
-  destination.visible = game.player.x !== game.player.targetX || game.player.y !== game.player.targetY;
+  destination.visible = !arrived(game.player, game.player.targetX, game.player.targetY);
   destination.position.set(game.player.targetX, game.player.targetY);
   caretaker.rotation = Math.sin(time * 0.012) * 0.018;
   game.people.forEach((p, i) => {

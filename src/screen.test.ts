@@ -88,3 +88,13 @@ it('says where the caretaker is and where a landing tap is sending them', () => 
   for (let i = 0; i < 400; i++) step(g);
   expect(readWalk(g)).toBe('You are on landing 3.');
 });
+
+it('gives a bounded walk time and stops saying "Walking" for a fractional pointer target', () => {
+  const g = createGame(1);
+  step(g, { type: 'move', x: 250.0004, y: 450 });
+  const eta = Number(/about (\d+) s/.exec(readWalk(g))?.[1]);
+  expect(eta).toBeGreaterThan(0);
+  expect(eta).toBeLessThan(30);
+  for (let i = 0; i < 400; i++) step(g);
+  expect(readWalk(g)).toBe('You are at the street.');
+});

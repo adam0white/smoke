@@ -48,7 +48,7 @@ First test one moving companion and Sevim's refusal before expanding the run. Br
 
 - 2026-11-10: preferences from the first LIGHT panel, not mechanism faults: faster walk, longer clock, richer death narration, per-person numeric clocks, an empty Feedback draft with an extra Back button, hiding key letters on the phone. Walk speed, clock and difficulty change only after a separate C14 human-speed comparison.
 - 2026-11-10: whether "Show the stair" should unlock the instant a neighbour says she is ready (unproved), and one-tap approach (selection stays two-step; no automatic compliance).
-
+- 2026-11-03: source/input clarification of stable neighbour button names while aiming, asked by Jonas (F-2377) and Marta (F-2389); stale accessible names and tool latency stay qualified, not a broken-pointer claim. Needs source/input clarification before any change.
 - 2026-11-03: panel observation of refusal readability and whether players change action; coordinator owns panel.
 - 2026-11-03: longer six-minute run and sound, after the short run proves persuasion.
 - 2026-11-03: carrying a downed person, only if it improves this game without turning people into cargo.
