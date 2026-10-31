@@ -15,6 +15,7 @@ type Smoke = {
     queuedRequests: number;
     latencySamples: number[];
     backlogTicks: number;
+    resetting: boolean;
     simulationError?: string;
   };
 };
@@ -137,11 +138,30 @@ test('keyboard climbs, export replays and a complete loss names the outcome', as
   expect(result.hash).toBe(result.replay);
   const original = await page.evaluate(() => window.smoke.exportRun());
   await page.getByRole('button', { name: 'Watch this run', exact: true }).click();
-  const watchStarted = performance.now();
+  const watchWaitStarted = performance.now();
   try {
-    await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 5000 });
+    // Hosted replay checks took 5.6–5.7s; retain a bounded completion wait and exact export below.
+    await expect
+      .poll(
+        async () => {
+          const dialog = page.getByRole('dialog', { includeHidden: true });
+          const [dialogCount, dialogVisible, metrics] = await Promise.all([
+            dialog.count(),
+            dialog.isVisible(),
+            page.evaluate(() => window.smoke.workerMetrics()),
+          ]);
+          return {
+            dialogCount,
+            dialogVisible,
+            resetting: metrics.resetting,
+            simulationError: metrics.simulationError ?? null,
+          };
+        },
+        { timeout: 10000 },
+      )
+      .toEqual({ dialogCount: 1, dialogVisible: false, resetting: false, simulationError: null });
   } catch (error) {
-    const elapsedMs = performance.now() - watchStarted;
+    const postClickWaitMs = performance.now() - watchWaitStarted;
     const snapshot = await Promise.race([
       page
         .evaluate(() => ({
@@ -155,12 +175,16 @@ test('keyboard climbs, export replays and a complete loss names the outcome', as
     ]);
     await testInfo
       .attach('watch-failure', {
-        body: JSON.stringify({ elapsedMs, snapshot, pageErrors }, null, 2),
+        body: JSON.stringify({ postClickWaitMs, snapshot, pageErrors }, null, 2),
         contentType: 'application/json',
       })
       .catch(() => undefined);
     throw error;
   }
+  await testInfo.attach('watch-ready', {
+    body: JSON.stringify({ postClickWaitMs: performance.now() - watchWaitStarted }, null, 2),
+    contentType: 'application/json',
+  });
   await page.evaluate(() => window.smoke.advance(3300));
   await expect(page.getByRole('heading', { name: /Everyone is out|walked out with you/ })).toBeVisible();
   const watched = await page.evaluate(() => window.smoke.exportRun());
